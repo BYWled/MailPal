@@ -4,6 +4,9 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ locals }) => {
 	return json({
 		authenticated: locals.authenticated,
-		authMode: locals.authMode
+		authMode: locals.authMode,
+		user: locals.user,
+		twoFactorPending: locals.twoFactorPending,
+		isInitialSetup: locals.isInitialSetup
 	});
 };

@@ -6,16 +6,30 @@
 	let {
 		domains,
 		defaultDomain,
+		userQuota,
+		userAliasCount,
+		domainAliasCount,
+		userRole,
 		onCreated,
 		onAddDomain,
 		focusTrigger = 0
 	}: {
 		domains: DomainConfig[];
 		defaultDomain: string;
+		userQuota?: number;
+		userAliasCount?: number;
+		domainAliasCount?: number;
+		userRole?: 'superadmin' | 'user';
 		onCreated: (alias: AliasConfig) => void;
 		onAddDomain: () => void;
 		focusTrigger?: number;
 	} = $props();
+
+	const isDomainLimitReached = $derived((domainAliasCount ?? 0) >= 50);
+	const isUserQuotaReached = $derived(
+		userRole !== 'superadmin' && userQuota != null && (userAliasCount ?? 0) >= userQuota
+	);
+	const isCreateBlocked = $derived(isDomainLimitReached || isUserQuotaReached);
 
 	let localPartInputEl = $state<HTMLInputElement | null>(null);
 
@@ -280,7 +294,7 @@
 
 				<button
 					type="submit"
-					disabled={creating || !newDomain}
+					disabled={creating || !newDomain || isCreateBlocked}
 					aria-busy={creating}
 					class="px-5 py-2.5 rounded-lg bg-app-accent text-app-bg text-sm border border-app-bg font-semibold hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
 				>
@@ -288,6 +302,15 @@
 				</button>
 			</div>
 
+			{#if isDomainLimitReached}
+				<p class="mt-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg">
+					Domain @{newDomain} has reached the hard limit of 50 aliases. Delete existing aliases or switch domains.
+				</p>
+			{:else if isUserQuotaReached}
+				<p class="mt-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg">
+					You have reached your personal quota of {userQuota} email aliases. Contact administrator to increase your quota.
+				</p>
+			{/if}
 
 			{#if error}
 				<p id={errorId} role="alert" class="mt-2 text-sm text-red-400">{error}</p>

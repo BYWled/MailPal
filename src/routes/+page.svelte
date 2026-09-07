@@ -127,9 +127,12 @@
 		editingDomain = null;
 	}
 
+	let userAliasCount = $state(data.userAliasCount ?? 0);
+
 	// ─── Alias mutations ──────────────────────────────────────────────────────
 	function addAlias(alias: AliasConfig) {
 		aliases = [alias, ...aliases];
+		userAliasCount++;
 	}
 
 	function updateAlias(updated: AliasConfig) {
@@ -140,6 +143,7 @@
 
 	function removeAlias(alias: AliasConfig) {
 		aliases = aliases.filter((a) => !(a.domain === alias.domain && a.localPart === alias.localPart));
+		if (userAliasCount > 0) userAliasCount--;
 	}
 
 	async function toggleAlias(alias: AliasConfig): Promise<void> {
@@ -409,6 +413,9 @@
 		{search}
 		authMode={data.authMode}
 		{domainColor}
+		user={data.user}
+		userQuota={data.userQuota}
+		{userAliasCount}
 		onSelectDomain={(d) => (selectedDomain = d)}
 		onSearchChange={(v) => (search = v)}
 		onAddDomain={() => (showAddDomain = true)}
@@ -425,6 +432,10 @@
 			<QuickCreateForm
 				{domains}
 				{defaultDomain}
+				userQuota={data.userQuota}
+				{userAliasCount}
+				domainAliasCount={aliasCounts[defaultDomain] ?? 0}
+				userRole={data.user?.role}
 				onCreated={addAlias}
 				onAddDomain={() => (showAddDomain = true)}
 				focusTrigger={focusCreateTrigger}

@@ -1,4 +1,4 @@
-import type { KVNamespace, EmailMessage, ExecutionContext } from '@cloudflare/workers-types';
+import type { KVNamespace, ForwardableEmailMessage, ExecutionContext } from '@cloudflare/workers-types';
 import type { AliasConfig, DomainConfig } from '../../src/lib/types.js';
 
 interface Env {
@@ -30,7 +30,7 @@ async function appendLog(
 }
 
 export default {
-	async email(message: EmailMessage, env: Env, ctx: ExecutionContext): Promise<void> {
+	async email(message: ForwardableEmailMessage, env: Env, ctx: ExecutionContext): Promise<void> {
 		const to = message.to;
 		const atIdx = to.indexOf('@');
 
@@ -66,6 +66,23 @@ export default {
 
 			// 3. Wildcard auto-create
 			if (!aliasConfig && domainConfig.wildcardEnabled) {
+				// 3a. Check blacklist
+				const globalBlocked = await env.KV.get(`blacklist:global:${localPart}`);
+				const domainBlocked = await env.KV.get(`blacklist:${domain}:${localPart}`);
+				if (globalBlocked || domainBlocked) {
+					console.log('Blacklisted alias attempt:', domain, localPart);
+					message.setReject('Blacklisted address');
+					return;
+				}
+
+				// 3b. Check 50 alias limit per domain
+				const domainAliases = await env.KV.list({ prefix: `alias:${domain}/` });
+				if (domainAliases.keys.length >= 50) {
+					console.log('Domain alias limit reached (50):', domain);
+					message.setReject('Domain alias limit reached');
+					return;
+				}
+
 				aliasConfig = {
 					localPart,
 					domain,

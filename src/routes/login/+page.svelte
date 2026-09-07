@@ -2,10 +2,17 @@
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
+
+	let usernameInput = $state('');
+	let passwordInput = $state('');
+	let totpInput = $state('');
+
+	let show2FaStep = $derived(Boolean(form?.requires2Fa));
+	let effectiveUsername = $derived(form?.username || usernameInput);
 </script>
 
 <svelte:head>
-	<title>Login — MailPal</title>
+	<title>Sign In — MailPal</title>
 </svelte:head>
 
 <div class="min-h-screen flex items-center justify-center bg-app-bg p-4">
@@ -35,31 +42,100 @@
 			</div>
 
 			<form method="POST" class="space-y-4">
-				<div>
-					<label for="password" class="block text-sm font-medium text-app-text mb-1.5">
-						Password
-					</label>
-					<input
-						id="password"
-						name="password"
-						type="password"
-						required
-						autocomplete="current-password"
-						class="w-full px-3 py-2.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
-						placeholder="Enter your password"
-					/>
-				</div>
+				{#if !show2FaStep}
+					<!-- Step 1: Username & Password -->
+					<div>
+						<label for="username" class="block text-sm font-medium text-app-text mb-1.5">
+							Username
+						</label>
+						<input
+							id="username"
+							name="username"
+							type="text"
+							required
+							autocomplete="username"
+							bind:value={usernameInput}
+							class="w-full px-3 py-2.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
+							placeholder="Enter your username"
+						/>
+					</div>
 
-				{#if form?.error}
-					<p class="text-sm text-red-400 bg-red-400/10 rounded-lg px-3 py-2">{form.error}</p>
+					<div>
+						<label for="password" class="block text-sm font-medium text-app-text mb-1.5">
+							Password
+						</label>
+						<input
+							id="password"
+							name="password"
+							type="password"
+							required
+							autocomplete="current-password"
+							bind:value={passwordInput}
+							class="w-full px-3 py-2.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
+							placeholder="Enter your password"
+						/>
+					</div>
+
+					{#if form?.error}
+						<p class="text-sm text-red-400 bg-red-400/10 rounded-lg px-3 py-2">{form.error}</p>
+					{/if}
+
+					<button
+						type="submit"
+						class="w-full py-2.5 px-4 bg-app-accent hover:brightness-110 text-app-bg text-sm font-semibold rounded-lg transition-all"
+					>
+						Continue
+					</button>
+				{:else}
+					<!-- Step 2: 2FA Verification Code -->
+					<input type="hidden" name="username" value={effectiveUsername} />
+					<input type="hidden" name="password" value={passwordInput} />
+
+					<div class="text-center mb-2">
+						<div class="text-xs text-app-muted">Signing in as</div>
+						<div class="font-medium text-app-text">{effectiveUsername}</div>
+					</div>
+
+					<div>
+						<label for="totpCode" class="block text-sm font-medium text-app-text mb-1.5 text-center">
+							6-Digit 2FA Code
+						</label>
+						<input
+							id="totpCode"
+							name="totpCode"
+							type="text"
+							inputmode="numeric"
+							pattern="[0-9]{6}"
+							maxlength="6"
+							required
+							autocomplete="one-time-code"
+							autofocus
+							bind:value={totpInput}
+							class="w-full text-center text-xl font-mono tracking-widest px-3 py-2.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent transition-colors"
+							placeholder="000000"
+						/>
+					</div>
+
+					{#if form?.error}
+						<p class="text-sm text-red-400 bg-red-400/10 rounded-lg px-3 py-2 text-center">{form.error}</p>
+					{/if}
+
+					<button
+						type="submit"
+						class="w-full py-2.5 px-4 bg-app-accent hover:brightness-110 text-app-bg text-sm font-semibold rounded-lg transition-all"
+					>
+						Verify & Sign In
+					</button>
+
+					<div class="text-center pt-2">
+						<a
+							href="/login"
+							class="text-xs text-app-muted hover:text-app-text transition-colors"
+						>
+							← Back to username & password
+						</a>
+					</div>
 				{/if}
-
-				<button
-					type="submit"
-					class="w-full py-2.5 px-4 bg-app-accent hover:brightness-110 text-app-bg text-sm font-semibold rounded-lg transition-all"
-				>
-					Sign in
-				</button>
 			</form>
 		</div>
 	</div>

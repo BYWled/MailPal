@@ -5,6 +5,7 @@ export interface DomainConfig {
 	enabled: boolean;
 	createdAt: number;
 	color?: string;
+	ownerUsername?: string; // username of the user who owns this domain
 }
 
 export interface DestinationAddress {
@@ -39,4 +40,30 @@ export interface AliasConfig {
 	tags?: string[];
 	expiresAt?: number;    // Unix ms — worker rejects after this timestamp
 	maxForwards?: number;  // worker auto-disables when forwardedCount >= this
+	createdBy?: string;    // username of the creator
+}
+
+export interface User {
+	username: string; // unique lowercase username
+	passwordHash: string; // PBKDF2 hash: pbkdf2$iterations$salt$hash
+	role: 'superadmin' | 'user';
+	createdAt: number;
+	maxAliases?: number; // per-user quota (null/undefined = use system default)
+	twoFactorSecret?: string; // base32 TOTP secret
+	twoFactorEnabled: boolean;
+}
+
+export interface SystemSettings {
+	defaultUserAliasQuota: number; // default per-user alias quota (default: 20)
+	maxAliasesPerDomain: number; // max aliases per domain (default: 50)
+	cfApiToken?: string; // Cloudflare API token for fetching DNS records
+}
+
+export interface BlacklistEntry {
+	id: string; // unique ID e.g. `${domain || 'global'}:${pattern}`
+	pattern: string; // blacklisted local-part pattern (lowercase)
+	domain?: string; // specific domain or undefined/empty for global
+	source?: 'manual' | 'dns_import' | 'cloudflare_api';
+	description?: string;
+	createdAt: number;
 }

@@ -10,6 +10,9 @@
 		search,
 		authMode,
 		domainColor,
+		user,
+		userQuota,
+		userAliasCount,
 		onSelectDomain,
 		onSearchChange,
 		onAddDomain,
@@ -24,6 +27,9 @@
 		search: string;
 		authMode: 'password' | 'cloudflare-access';
 		domainColor: (domain: string) => string;
+		user?: { username: string; role: 'superadmin' | 'user' };
+		userQuota?: number;
+		userAliasCount?: number;
 		onSelectDomain: (domain: string | null) => void;
 		onSearchChange: (value: string) => void;
 		onAddDomain: () => void;
@@ -47,10 +53,33 @@
 	class="w-64 shrink-0 flex flex-col bg-app-sidebar border-r border-app-border"
 	aria-label="Sidebar"
 >
-	<!-- Brand -->
-	<div class="px-5 py-5 flex items-center gap-3">
-		<img src="/favicon.svg" alt="" class="w-8 h-8 shrink-0" aria-hidden="true" />
-		<span class="text-base font-bold tracking-tight text-app-text">MailPal</span>
+	<!-- Brand & User Profile -->
+	<div class="px-5 py-4 border-b border-app-border/40 mb-3">
+		<div class="flex items-center justify-between">
+			<div class="flex items-center gap-2.5">
+				<img src="/favicon.svg" alt="" class="w-7 h-7 shrink-0" aria-hidden="true" />
+				<span class="text-base font-bold tracking-tight text-app-text">MailPal</span>
+			</div>
+			{#if user}
+				<span
+					class="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider
+					{user.role === 'superadmin' ? 'bg-purple-500/20 text-purple-400' : 'bg-slate-500/20 text-slate-300'}"
+				>
+					{user.role}
+				</span>
+			{/if}
+		</div>
+
+		{#if user}
+			<div class="mt-2.5 flex items-center justify-between text-xs">
+				<span class="text-app-text font-medium truncate max-w-[120px]" title={user.username}>{user.username}</span>
+				{#if userQuota != null && userAliasCount != null}
+					<span class="text-[11px] font-mono text-app-muted">
+						{userAliasCount} / {userQuota} aliases
+					</span>
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Search -->
@@ -183,7 +212,7 @@
 			href="/activity"
 			aria-label="Activity log"
 			title="Activity log"
-			class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-app-muted hover:text-app-text hover:bg-app-hover/60 transition-colors"
+			class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-app-muted hover:text-app-text hover:bg-app-hover/60 transition-colors"
 		>
 			<svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -191,15 +220,12 @@
 			Activity
 		</a>
 
-		<!-- Divider -->
-		<div class="w-px h-6 bg-app-border/50"></div>
-
 		<!-- Settings -->
 		<button
 			onclick={onOpenSettings}
 			aria-label="Settings"
 			title="Settings"
-			class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-app-muted hover:text-app-text hover:bg-app-hover/60 transition-colors"
+			class="flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs text-app-muted hover:text-app-text hover:bg-app-hover/60 transition-colors"
 		>
 			<svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -208,19 +234,31 @@
 			Settings
 		</button>
 
-		{#if authMode === 'password'}
-			<form method="POST" action="/logout" class="ml-auto">
-				<button
-					class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-app-muted hover:text-app-text hover:bg-app-hover/60 transition-colors"
-					aria-label="Logout"
-					title="Logout"
-				>
-					<svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-					</svg>
-					Logout
-				</button>
-			</form>
+		<!-- Superadmin Link -->
+		{#if user?.role === 'superadmin'}
+			<a
+				href="/admin"
+				aria-label="Admin Console"
+				title="Admin Console"
+				class="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold text-purple-400 hover:text-purple-300 hover:bg-purple-500/15 transition-colors"
+			>
+				<svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+				</svg>
+				Admin
+			</a>
 		{/if}
+
+		<form method="POST" action="/logout" class="ml-auto">
+			<button
+				class="flex items-center gap-1.5 px-2 py-2 rounded-lg text-xs text-app-muted hover:text-red-400 hover:bg-app-hover/60 transition-colors"
+				aria-label="Logout"
+				title="Logout"
+			>
+				<svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+				</svg>
+			</button>
+		</form>
 	</div>
 </aside>

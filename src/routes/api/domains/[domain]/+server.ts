@@ -7,12 +7,21 @@ const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 export const GET: RequestHandler = async ({ params, locals }) => {
 	const config = await getDomain(locals.kv, params.domain);
 	if (!config) return json({ error: 'Not found' }, { status: 404 });
+
+	if (locals.user?.role !== 'superadmin' && config.ownerUsername && config.ownerUsername !== locals.user?.username) {
+		return json({ error: 'Forbidden' }, { status: 403 });
+	}
+
 	return json(config);
 };
 
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const config = await getDomain(locals.kv, params.domain);
 	if (!config) return json({ error: 'Not found' }, { status: 404 });
+
+	if (locals.user?.role !== 'superadmin' && config.ownerUsername && config.ownerUsername !== locals.user?.username) {
+		return json({ error: 'Forbidden' }, { status: 403 });
+	}
 
 	const body = await request.json();
 	const { targetEmail, wildcardEnabled, enabled, color } = body;
@@ -37,6 +46,10 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 export const DELETE: RequestHandler = async ({ params, locals }) => {
 	const config = await getDomain(locals.kv, params.domain);
 	if (!config) return json({ error: 'Not found' }, { status: 404 });
+
+	if (locals.user?.role !== 'superadmin' && config.ownerUsername && config.ownerUsername !== locals.user?.username) {
+		return json({ error: 'Forbidden' }, { status: 403 });
+	}
 
 	// Delete all aliases for this domain
 	const aliases = await listAliases(locals.kv, params.domain);

@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { listDomains, listAliases, getLog } from '$lib/kv.js';
+import { listDomainsForUser, listAliases, getLog } from '$lib/kv.js';
 import type { LogEntry } from '$lib/types.js';
 
 export interface ActivityEntry extends LogEntry {
@@ -8,7 +8,7 @@ export interface ActivityEntry extends LogEntry {
 }
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const domains = await listDomains(locals.kv);
+	const domains = await listDomainsForUser(locals.kv, locals.user);
 	const allAliases = (await Promise.all(domains.map((d) => listAliases(locals.kv, d.domain)))).flat();
 
 	const buckets = await Promise.all(

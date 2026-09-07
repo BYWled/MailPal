@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDomain, listDomains, putDomain } from '$lib/kv.js';
+import { getDomain, listDomainsForUser, putDomain } from '$lib/kv.js';
 import type { DomainConfig } from '$lib/types.js';
 
 // RFC 1123 hostname validation (does not allow bare TLDs)
@@ -8,7 +8,7 @@ const DOMAIN_RE = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]
 const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 
 export const GET: RequestHandler = async ({ locals }) => {
-	const domains = await listDomains(locals.kv);
+	const domains = await listDomainsForUser(locals.kv, locals.user);
 	domains.sort((a, b) => a.createdAt - b.createdAt);
 	return json(domains);
 };
@@ -40,6 +40,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		wildcardEnabled: wildcardEnabled ?? false,
 		enabled: true,
 		createdAt: Date.now(),
+		ownerUsername: locals.user?.username,
 		...(color && { color })
 	};
 
