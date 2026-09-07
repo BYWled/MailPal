@@ -6,11 +6,10 @@ import {
 	listAliases,
 	putAlias,
 	isAliasBlacklisted,
+	listBlacklist,
 	getUser,
 	getSystemSettings,
-	countUserAliases,
-	getUserDomainQuota,
-	countUserAliasesOnDomain
+	getUserDomainQuota
 } from '$lib/kv.js';
 import { generateSlug } from '$lib/sluggen.js';
 import { maskLocalPart } from '$lib/mask.js';
@@ -72,7 +71,10 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 				{ status: 403 }
 			);
 		}
-		const userCountOnDomain = await countUserAliasesOnDomain(locals.kv, locals.user.username, params.domain);
+		const normUser = locals.user.username.toLowerCase().trim();
+		const userCountOnDomain = existingAliases.filter(
+			(a) => a.createdBy?.toLowerCase().trim() === normUser
+		).length;
 		if (userCountOnDomain >= domainQuota) {
 			return json(
 				{ error: `You have reached your allowed quota of ${domainQuota} email aliases on domain ${params.domain}` },
@@ -85,16 +87,29 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	let { localPart, targetEmail = null, note, tags, expiresAt, maxForwards } = body as { localPart?: string; targetEmail?: string | null; note?: string; tags?: string[]; expiresAt?: number; maxForwards?: number };
 
 	if (!localPart) {
-		// Auto-generate unique slug not in blacklist and not existing
+		// Auto-generate unique slug not in blacklist and not existing (in-memory fast collision check)
+		const existingLocalParts = new Set(existingAliases.map((a) => a.localPart.toLowerCase().trim()));
+		const blacklistRules = await listBlacklist(locals.kv, params.domain);
+
+		const isSlugTaken = (slug: string) => {
+			const normSlug = slug.toLowerCase().trim();
+			if (existingLocalParts.has(normSlug)) return true;
+			for (const rule of blacklistRules) {
+				const pat = rule.pattern.toLowerCase().trim();
+				if (pat === normSlug) return true;
+				if (pat.includes('*')) {
+					const regex = new RegExp(`^${pat.replace(/[-[\]/{}()+?.\\^$|]/g, '\\$&').replace(/\*/g, '.*')}$`, 'i');
+					if (regex.test(normSlug)) return true;
+				}
+			}
+			return false;
+		};
+
 		let attempts = 0;
 		do {
 			localPart = generateSlug();
 			attempts++;
-		} while (
-			((await getAlias(locals.kv, params.domain, localPart)) ||
-				(await isAliasBlacklisted(locals.kv, params.domain, localPart))) &&
-			attempts < 15
-		);
+		} while (isSlugTaken(localPart) && attempts < 15);
 	} else {
 		// Validate local part
 		if (!/^[a-zA-Z0-9._+-]+$/.test(localPart)) {

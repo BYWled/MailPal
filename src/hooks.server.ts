@@ -1,6 +1,6 @@
 import { redirect, error, type Handle } from '@sveltejs/kit';
 import { readSession, COOKIE_NAME } from '$lib/auth.js';
-import { countUsers } from '$lib/kv.js';
+import { isInitialSetupRequired, setSetupCompletedInMemory } from '$lib/kv.js';
 import { DemoKV, type DemoDelta } from '$lib/demo-kv.js';
 
 const DEMO_STATE_COOKIE = 'demo_state';
@@ -44,16 +44,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	event.locals.authMode = 'password';
 
-	// ── 2. Check initial setup state (0 users = initial setup) ───────────────
-	const userCount = await countUsers(event.locals.kv);
-	const isInitialSetup = userCount === 0;
-	event.locals.isInitialSetup = isInitialSetup;
-
-	// ── 3. Read session token ────────────────────────────────────────────────
+	// ── 2. Read session token first ──────────────────────────────────────────
 	const sealed = event.cookies.get(COOKIE_NAME);
 	const sessionSecret = platform?.env?.SESSION_SECRET || platform?.env?.AUTH_PASSWORD;
 	const session = await readSession(sealed, sessionSecret);
 
+	let isInitialSetup = false;
 	if (session && session.username) {
 		event.locals.user = {
 			username: session.username,
@@ -61,9 +57,15 @@ export const handle: Handle = async ({ event, resolve }) => {
 		};
 		event.locals.twoFactorPending = session.twoFactorPending === true;
 		event.locals.authenticated = session.authenticated === true && !session.twoFactorPending;
+		// A valid signed user session guarantees the system is already initialized
+		event.locals.isInitialSetup = false;
+		setSetupCompletedInMemory(true);
 	} else {
 		event.locals.authenticated = false;
 		event.locals.twoFactorPending = false;
+		// Check initial setup state without scanning KV keys on every request
+		isInitialSetup = await isInitialSetupRequired(event.locals.kv);
+		event.locals.isInitialSetup = isInitialSetup;
 	}
 
 	// ── 4. Route protection & redirection rules ──────────────────────────────

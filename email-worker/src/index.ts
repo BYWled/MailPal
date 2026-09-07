@@ -12,6 +12,26 @@ interface LogEntry {
 	to: string;
 }
 
+interface CacheEntry<T> {
+	value: T;
+	expiresAt: number;
+}
+const emailWorkerCache = new Map<string, CacheEntry<unknown>>();
+
+function getWorkerCached<T>(key: string): T | undefined {
+	const entry = emailWorkerCache.get(key);
+	if (!entry) return undefined;
+	if (Date.now() > entry.expiresAt) {
+		emailWorkerCache.delete(key);
+		return undefined;
+	}
+	return entry.value as T;
+}
+
+function setWorkerCached<T>(key: string, value: T, ttlMs = 60_000): void {
+	emailWorkerCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+}
+
 async function appendLog(
 	kv: KVNamespace,
 	domain: string,
@@ -44,15 +64,19 @@ export default {
 		const domain = to.slice(atIdx + 1).toLowerCase();
 
 		try {
-			// 1. Load domain config
-			const domainVal = await env.KV.get(`domain:${domain}`);
-			if (!domainVal) {
-				console.log('Unknown domain:', domain);
-				message.setReject('Unknown domain');
-				return;
+			// 1. Load domain config (with in-memory cache)
+			let domainConfig = getWorkerCached<DomainConfig>(`domain:${domain}`);
+			if (!domainConfig) {
+				const domainVal = await env.KV.get(`domain:${domain}`);
+				if (!domainVal) {
+					console.log('Unknown domain:', domain);
+					message.setReject('Unknown domain');
+					return;
+				}
+				domainConfig = JSON.parse(domainVal) as DomainConfig;
+				setWorkerCached(`domain:${domain}`, domainConfig, 60_000);
 			}
 
-			const domainConfig = JSON.parse(domainVal) as DomainConfig;
 			if (!domainConfig.enabled) {
 				console.log('Disabled domain:', domain);
 				message.setReject('Domain disabled');

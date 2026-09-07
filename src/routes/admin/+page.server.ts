@@ -5,9 +5,7 @@ import {
 	listDomains,
 	listAliases,
 	listBlacklist,
-	getSystemSettings,
-	countUserAliases,
-	countUserAliasesOnDomain
+	getSystemSettings
 } from '$lib/kv.js';
 import { syncCloudflareDomainsAndDns } from '$lib/cloudflare.js';
 
@@ -18,9 +16,9 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 
 	let settings = await getSystemSettings(locals.kv);
 	const cfToken =
+		settings.cfApiToken ||
 		platform?.env?.CF_API_TOKEN ||
-		platform?.env?.CLOUDFLARE_API_TOKEN ||
-		settings.cfApiToken;
+		platform?.env?.CLOUDFLARE_API_TOKEN;
 
 	const intervalHours = settings.autoSyncIntervalHours ?? 6;
 	const intervalMs = intervalHours * 60 * 60 * 1000;
@@ -45,42 +43,52 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 		listBlacklist(locals.kv)
 	]);
 
-	// Enrich users
-	const users = await Promise.all(
-		rawUsers.map(async (u) => {
-			const aliasCount = await countUserAliases(locals.kv, u.username);
-			const domainUsage: Record<string, number> = {};
-			await Promise.all(
-				domains.map(async (d) => {
-					domainUsage[d.domain] = await countUserAliasesOnDomain(locals.kv, u.username, d.domain);
-				})
-			);
-			return {
-				username: u.username,
-				role: u.role,
-				createdAt: u.createdAt,
-				maxAliases: u.maxAliases ?? settings.defaultUserAliasQuota,
-				customQuota: u.maxAliases != null,
-				domainQuotas: u.domainQuotas ?? {},
-				domainUsage,
-				aliasCount,
-				twoFactorEnabled: u.twoFactorEnabled
-			};
-		})
-	);
-	users.sort((a, b) => a.createdAt - b.createdAt);
-
-	// Enrich domains with alias count / 50 limit
-	const enrichedDomains = await Promise.all(
+	// Load aliases for all domains once in parallel
+	const allAliasesByDomain = new Map<string, import('$lib/types.js').AliasConfig[]>();
+	await Promise.all(
 		domains.map(async (d) => {
 			const aliases = await listAliases(locals.kv, d.domain);
-			return {
-				...d,
-				aliasCount: aliases.length,
-				maxAliases: 50 // Enforced 50 per domain
-			};
+			allAliasesByDomain.set(d.domain.toLowerCase().trim(), aliases);
 		})
 	);
+	const allAliases = Array.from(allAliasesByDomain.values()).flat();
+
+	// Enrich users completely in-memory
+	const users = rawUsers.map((u) => {
+		const normUser = u.username.toLowerCase().trim();
+		const aliasCount = allAliases.filter(
+			(a) => a.createdBy?.toLowerCase().trim() === normUser
+		).length;
+		const domainUsage: Record<string, number> = {};
+		for (const d of domains) {
+			const domainAliases = allAliasesByDomain.get(d.domain.toLowerCase().trim()) || [];
+			domainUsage[d.domain] = domainAliases.filter(
+				(a) => a.createdBy?.toLowerCase().trim() === normUser
+			).length;
+		}
+		return {
+			username: u.username,
+			role: u.role,
+			createdAt: u.createdAt,
+			maxAliases: u.maxAliases ?? settings.defaultUserAliasQuota,
+			customQuota: u.maxAliases != null,
+			domainQuotas: u.domainQuotas ?? {},
+			domainUsage,
+			aliasCount,
+			twoFactorEnabled: u.twoFactorEnabled
+		};
+	});
+	users.sort((a, b) => a.createdAt - b.createdAt);
+
+	// Enrich domains with alias count / 50 limit in-memory
+	const enrichedDomains = domains.map((d) => {
+		const aliases = allAliasesByDomain.get(d.domain.toLowerCase().trim()) || [];
+		return {
+			...d,
+			aliasCount: aliases.length,
+			maxAliases: 50 // Enforced 50 per domain
+		};
+	});
 	enrichedDomains.sort((a, b) => a.createdAt - b.createdAt);
 
 	blacklist.sort((a, b) => b.createdAt - a.createdAt);
@@ -91,6 +99,7 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 		blacklist,
 		settings,
 		hasEnvCfToken: Boolean(platform?.env?.CF_API_TOKEN || platform?.env?.CLOUDFLARE_API_TOKEN),
+		hasEnvCfAccountId: Boolean(platform?.env?.CF_ACCOUNT_ID || platform?.env?.CLOUDFLARE_ACCOUNT_ID),
 		hasConfiguredToken: Boolean(cfToken),
 		currentUser: locals.user
 	};

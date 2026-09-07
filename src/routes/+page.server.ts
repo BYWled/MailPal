@@ -6,9 +6,7 @@ import {
 	listTags,
 	getUser,
 	getSystemSettings,
-	countUserAliases,
-	getUserDomainQuota,
-	countUserAliasesOnDomain
+	getUserDomainQuota
 } from '$lib/kv.js';
 import { maskLocalPart, maskEmailAddress } from '$lib/mask.js';
 
@@ -61,13 +59,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 			userQuota = userObj.maxAliases;
 		}
 		const currentUsername = locals.user.username;
-		userAliasCount = await countUserAliases(locals.kv, currentUsername);
-		await Promise.all(
-			domains.map(async (d) => {
-				userDomainQuotas[d.domain] = getUserDomainQuota(userObj, d.domain, settings.defaultUserAliasQuota);
-				userDomainCounts[d.domain] = await countUserAliasesOnDomain(locals.kv, currentUsername, d.domain);
-			})
-		);
+		const normCurrentUser = currentUsername.toLowerCase().trim();
+		userAliasCount = rawAliases.filter(
+			(a) => a.createdBy?.toLowerCase().trim() === normCurrentUser
+		).length;
+		for (const d of domains) {
+			const normDomain = d.domain.toLowerCase().trim();
+			userDomainQuotas[d.domain] = getUserDomainQuota(userObj, d.domain, settings.defaultUserAliasQuota);
+			userDomainCounts[d.domain] = rawAliases.filter(
+				(a) => a.domain.toLowerCase().trim() === normDomain && a.createdBy?.toLowerCase().trim() === normCurrentUser
+			).length;
+		}
 	}
 
 	const sanitizedDomains = domains.map((d) => {

@@ -71,7 +71,8 @@ export interface SyncStatus {
 export interface SystemSettings {
 	defaultUserAliasQuota: number; // default per-user alias quota (default: 20)
 	maxAliasesPerDomain: number; // max aliases per domain (default: 50)
-	cfApiToken?: string; // Cloudflare API token for fetching DNS records
+	cfApiToken?: string; // Cloudflare API token for fetching DNS records & email routing
+	cfAccountId?: string; // Optional explicit Cloudflare Account ID (32 hex characters)
 	autoSyncEnabled?: boolean; // periodic auto-sync enabled
 	autoSyncIntervalHours?: number; // interval in hours (1, 6, 12, 24; default: 6)
 	lastSyncStatus?: SyncStatus;

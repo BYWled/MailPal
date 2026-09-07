@@ -234,16 +234,29 @@ export async function syncCloudflareDomainsAndDns(
 	token: string,
 	ownerUsername?: string
 ): Promise<import('./types.js').SyncStatus> {
-	const { listDomains, putDomain, putBlacklist, getSystemSettings, putSystemSettings } = await import(
+	const { listDomains, putDomain, listBlacklist, putBlacklist, getSystemSettings, putSystemSettings } = await import(
 		'./kv.js'
 	);
 
 	try {
 		const zones = await listAllZones(token);
-		const existingDomains = await listDomains(kv);
+		const [existingDomains, existingBlacklist] = await Promise.all([
+			listDomains(kv),
+			listBlacklist(kv)
+		]);
+
 		const existingDomainMap = new Map<string, import('./types.js').DomainConfig>();
 		for (const d of existingDomains) {
 			existingDomainMap.set(d.domain.toLowerCase(), d);
+		}
+
+		const existingBlacklistIds = new Set<string>();
+		for (const b of existingBlacklist) {
+			existingBlacklistIds.add(b.id.toLowerCase().trim());
+			// Also index domain:pattern if id format differs
+			if (b.domain && b.pattern) {
+				existingBlacklistIds.add(`${b.domain.toLowerCase().trim()}:${b.pattern.toLowerCase().trim()}`);
+			}
 		}
 
 		let newDomainsAddedCount = 0;
@@ -275,19 +288,23 @@ export async function syncCloudflareDomainsAndDns(
 			const records = await fetchAllDnsRecords(token, zone.id);
 			const names = extractHostnamesFromDns(domainName, records);
 
-			// 3. Upsert into blacklist
+			// 3. Upsert into blacklist only if not already existing
 			const now = Date.now();
 			for (const name of names) {
-				const entry: import('./types.js').BlacklistEntry = {
-					id: `${domainName}:${name}`,
-					pattern: name,
-					domain: domainName,
-					source: 'cloudflare_api',
-					description: `Auto-synced from Cloudflare DNS records for ${domainName}`,
-					createdAt: now
-				};
-				await putBlacklist(kv, entry);
-				syncedDnsRulesCount++;
+				const ruleKey = `${domainName}:${name}`.toLowerCase().trim();
+				if (!existingBlacklistIds.has(ruleKey)) {
+					const entry: import('./types.js').BlacklistEntry = {
+						id: `${domainName}:${name}`,
+						pattern: name,
+						domain: domainName,
+						source: 'cloudflare_api',
+						description: `Auto-synced from Cloudflare DNS records for ${domainName}`,
+						createdAt: now
+					};
+					await putBlacklist(kv, entry);
+					existingBlacklistIds.add(ruleKey);
+					syncedDnsRulesCount++;
+				}
 			}
 		}
 
@@ -343,13 +360,20 @@ export interface CloudflareDestinationAddress {
  * Resolves the Cloudflare Account ID for the provided API token.
  * Tries GET /accounts first, then falls back to extracting account.id from GET /zones.
  */
-export async function getCloudflareAccountId(token: string): Promise<string | null> {
+export async function getCloudflareAccountId(
+	token: string,
+	preferredAccountId?: string | null
+): Promise<string | null> {
+	if (preferredAccountId?.trim()) {
+		return preferredAccountId.trim();
+	}
+
 	const cleanToken = token.trim();
 	if (!cleanToken) return null;
 
 	// 1. Try GET /accounts
 	try {
-		const res = await fetch(`${CF_API_BASE}/accounts?per_page=1`, {
+		const res = await fetch(`${CF_API_BASE}/accounts?per_page=20`, {
 			headers: {
 				Authorization: `Bearer ${cleanToken}`,
 				'Content-Type': 'application/json'
@@ -367,7 +391,7 @@ export async function getCloudflareAccountId(token: string): Promise<string | nu
 
 	// 2. Fallback: try GET /zones
 	try {
-		const res = await fetch(`${CF_API_BASE}/zones?status=active&per_page=1`, {
+		const res = await fetch(`${CF_API_BASE}/zones?status=active&per_page=20`, {
 			headers: {
 				Authorization: `Bearer ${cleanToken}`,
 				'Content-Type': 'application/json'
@@ -415,14 +439,19 @@ export async function listCloudflareDestinationAddresses(
 				res.status === 403 ||
 				firstErr?.code === 10000 ||
 				firstErr?.message?.includes('Authentication error');
-			let errMsg = firstErr?.message || `Cloudflare API error (${res.status})`;
+
+			const rawMsg = firstErr?.message || `Cloudflare API error (${res.status})`;
+			const errCode = firstErr?.code ? ` [Code ${firstErr.code}]` : '';
+
+			let errMsg = `Cloudflare API 错误 (${res.status})${errCode}: ${rawMsg}`;
 			if (isAuth) {
-				errMsg =
-					'Cloudflare API 鉴权失败 (Authentication error): 当前 API Token 缺少 Account 级别的「Email Routing Addresses: Read/Edit」权限。请前往 Cloudflare 控制台为 Token 补充该权限。';
+				errMsg = `Cloudflare API 鉴权失败 (${res.status})${errCode}: ${rawMsg} (访问的目标 Account ID: ${accountId})。请检查：1. 您的 Token 资源范围（Account Resources）是否包含了该 Account ID；2. 是否在管理后台设置了正确的 Cloudflare Account ID；3. Token 权限是否包含「Account -> Email Routing Addresses: Read/Edit」。`;
 			}
 			const error = new Error(errMsg);
 			(error as any).isAuthError = isAuth;
 			(error as any).status = res.status;
+			(error as any).accountId = accountId;
+			(error as any).rawError = errBody;
 			throw error;
 		}
 
@@ -475,14 +504,18 @@ export async function createCloudflareDestinationAddress(
 			res.status === 403 ||
 			firstErr?.code === 10000 ||
 			firstErr?.message?.includes('Authentication error');
-		let errMsg = firstErr?.message || `Failed to add destination address to Cloudflare (${res.status})`;
+		const rawMsg = firstErr?.message || `Failed to add destination address to Cloudflare (${res.status})`;
+		const errCode = firstErr?.code ? ` [Code ${firstErr.code}]` : '';
+
+		let errMsg = `Cloudflare API 错误 (${res.status})${errCode}: ${rawMsg}`;
 		if (isAuth) {
-			errMsg =
-				'Cloudflare API 鉴权失败 (Authentication error): 当前 API Token 缺少 Account 级别的「Email Routing Addresses: Edit」权限。请前往 Cloudflare 控制台为 Token 补充该权限。';
+			errMsg = `Cloudflare API 鉴权失败 (${res.status})${errCode}: ${rawMsg} (访问的目标 Account ID: ${accountId})。请检查当前 Token 是否包含「Account -> Email Routing Addresses: Edit」权限且资源覆盖了该 Account ID。`;
 		}
 		const error = new Error(errMsg);
 		(error as any).isAuthError = isAuth;
 		(error as any).status = res.status;
+		(error as any).accountId = accountId;
+		(error as any).rawError = body;
 		throw error;
 	}
 
@@ -491,6 +524,7 @@ export async function createCloudflareDestinationAddress(
 
 /**
  * Helper to resolve the active Cloudflare API Token.
+ * Settings configured in Web Admin Console take precedence over environment secrets.
  */
 export function resolveCloudflareToken(
 	platform: App.Platform | undefined,
@@ -498,9 +532,24 @@ export function resolveCloudflareToken(
 	explicitToken?: string
 ): string | null {
 	if (explicitToken?.trim()) return explicitToken.trim();
+	if (settings.cfApiToken?.trim()) return settings.cfApiToken.trim();
 	const envToken = platform?.env?.CF_API_TOKEN || platform?.env?.CLOUDFLARE_API_TOKEN;
 	if (envToken?.trim()) return envToken.trim();
-	if (settings.cfApiToken?.trim()) return settings.cfApiToken.trim();
+	return null;
+}
+
+/**
+ * Helper to resolve the active Cloudflare Account ID.
+ */
+export function resolveCloudflareAccountId(
+	platform: App.Platform | undefined,
+	settings: import('./types.js').SystemSettings,
+	explicitAccountId?: string
+): string | null {
+	if (explicitAccountId?.trim()) return explicitAccountId.trim();
+	if (settings.cfAccountId?.trim()) return settings.cfAccountId.trim();
+	const envAccountId = platform?.env?.CF_ACCOUNT_ID || platform?.env?.CLOUDFLARE_ACCOUNT_ID;
+	if (envAccountId?.trim()) return envAccountId.trim();
 	return null;
 }
 

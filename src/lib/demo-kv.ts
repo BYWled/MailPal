@@ -16,6 +16,7 @@ interface MinimalKVNamespace {
 export type DemoDelta = Record<string, string | null>;
 
 export class DemoKV implements MinimalKVNamespace {
+	readonly isDemo: boolean = true;
 	private readonly store: Map<string, string>;
 	private readonly mutations: Map<string, string | null>;
 

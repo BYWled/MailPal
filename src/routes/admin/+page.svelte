@@ -62,6 +62,7 @@
 	// Settings state
 	let defaultQuotaInput = $state(data.settings.defaultUserAliasQuota);
 	let cfTokenSettingInput = $state(data.settings.cfApiToken ?? '');
+	let cfAccountIdSettingInput = $state(data.settings.cfAccountId ?? '');
 	let autoSyncEnabledInput = $state(data.settings.autoSyncEnabled ?? true);
 	let autoSyncIntervalInput = $state(data.settings.autoSyncIntervalHours ?? 6);
 	let savingSettings = $state(false);
@@ -452,6 +453,7 @@
 					defaultUserAliasQuota: Number(defaultQuotaInput),
 					maxAliasesPerDomain: 50,
 					cfApiToken: cfTokenSettingInput.trim() || null,
+					cfAccountId: cfAccountIdSettingInput.trim() || null,
 					autoSyncEnabled: autoSyncEnabledInput,
 					autoSyncIntervalHours: Number(autoSyncIntervalInput)
 				})
@@ -1219,6 +1221,26 @@
 								<span class="text-emerald-400 font-medium">{t('admin.settings.cfTokenEnvDetected')}</span>
 							{:else}
 								{t('admin.settings.cfTokenDesc')}
+							{/if}
+						</p>
+					</div>
+
+					<div>
+						<label for="cf-account-id-setting" class="block text-sm font-medium text-app-text mb-1">
+							{t('admin.settings.cfAccountId')}
+						</label>
+						<input
+							id="cf-account-id-setting"
+							type="text"
+							bind:value={cfAccountIdSettingInput}
+							placeholder="e.g. 023e105f4ecef8ad9ca31a8372d0c353"
+							class="w-full px-3 py-2 rounded-lg border border-app-border bg-app-hover text-sm font-mono text-app-text outline-none focus:border-app-accent"
+						/>
+						<p class="text-xs text-app-muted mt-1">
+							{#if data.hasEnvCfAccountId}
+								<span class="text-emerald-400 font-medium">{t('admin.settings.cfAccountIdEnvDetected')}</span>
+							{:else}
+								{t('admin.settings.cfAccountIdDesc')}
 							{/if}
 						</p>
 					</div>

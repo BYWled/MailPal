@@ -5,7 +5,8 @@ import {
 	getCloudflareAccountId,
 	listCloudflareDestinationAddresses,
 	createCloudflareDestinationAddress,
-	resolveCloudflareToken
+	resolveCloudflareToken,
+	resolveCloudflareAccountId
 } from '$lib/cloudflare.js';
 
 export const GET: RequestHandler = async ({ locals, platform }) => {
@@ -24,12 +25,18 @@ export const GET: RequestHandler = async ({ locals, platform }) => {
 		});
 	}
 
+	const explicitAccountId = resolveCloudflareAccountId(platform, settings);
+	let accountId: string | null = null;
+
 	try {
-		const accountId = await getCloudflareAccountId(token);
+		accountId = await getCloudflareAccountId(token, explicitAccountId);
 		if (!accountId) {
 			return json({
 				tokenConfigured: true,
-				error: 'Unable to determine Cloudflare Account ID. Please verify your API token permissions (Account: Read or Zone: Read).',
+				error:
+					'未能自动解析到 Cloudflare Account ID。若您的 API Token 仅包含 Email Routing 权限，请在「管理后台 -> 系统设置」中填写您的 Cloudflare Account ID（可在 Cloudflare 控制台任意域名右侧栏或 URL 中获取）。',
+				tokenHint: `${token.slice(0, 4)}...${token.slice(-4)}`,
+				tokenSource: settings.cfApiToken ? 'settings' : 'environment',
 				statuses: {}
 			});
 		}
@@ -75,6 +82,9 @@ export const GET: RequestHandler = async ({ locals, platform }) => {
 			tokenConfigured: true,
 			authError: isAuth,
 			error: err?.message || 'Failed to probe Cloudflare destination addresses',
+			accountId: (err as any)?.accountId || accountId,
+			tokenHint: token ? `${token.slice(0, 4)}...${token.slice(-4)}` : null,
+			tokenSource: settings.cfApiToken ? 'settings' : 'environment',
 			statuses: {}
 		});
 	}
@@ -114,12 +124,16 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 		);
 	}
 
+	const explicitAccountId = resolveCloudflareAccountId(platform, settings);
+	let accountId: string | null = null;
+
 	try {
-		const accountId = await getCloudflareAccountId(token);
+		accountId = await getCloudflareAccountId(token, explicitAccountId);
 		if (!accountId) {
 			return json(
 				{
-					error: 'Unable to determine Cloudflare Account ID. Please verify token permissions.'
+					error:
+						'未能自动解析到 Cloudflare Account ID。请在「管理后台 -> 系统设置」中填写您的 Cloudflare Account ID。'
 				},
 				{ status: 400 }
 			);
@@ -166,7 +180,10 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 		return json(
 			{
 				error: err?.message || 'Failed to interact with Cloudflare API',
-				authError: isAuth
+				authError: isAuth,
+				accountId: (err as any)?.accountId || accountId,
+				tokenHint: token ? `${token.slice(0, 4)}...${token.slice(-4)}` : null,
+				tokenSource: settings.cfApiToken ? 'settings' : 'environment'
 			},
 			{ status: isAuth ? 403 : 500 }
 		);

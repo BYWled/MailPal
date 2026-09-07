@@ -10,10 +10,12 @@ export const GET: RequestHandler = async ({ locals, platform }) => {
 
 	const settings = await getSystemSettings(locals.kv);
 	const hasEnvToken = Boolean(platform?.env?.CF_API_TOKEN || platform?.env?.CLOUDFLARE_API_TOKEN);
+	const hasEnvAccountId = Boolean(platform?.env?.CF_ACCOUNT_ID || platform?.env?.CLOUDFLARE_ACCOUNT_ID);
 
 	return json({
 		...settings,
 		hasEnvToken,
+		hasEnvAccountId,
 		hasConfiguredToken: hasEnvToken || Boolean(settings.cfApiToken)
 	});
 };
@@ -29,6 +31,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 		defaultUserAliasQuota,
 		maxAliasesPerDomain,
 		cfApiToken,
+		cfAccountId,
 		autoSyncEnabled,
 		autoSyncIntervalHours
 	} = body as Partial<SystemSettings>;
@@ -43,6 +46,7 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 				? Math.min(50, Math.max(1, Number(maxAliasesPerDomain)))
 				: 50, // strictly capped at 50
 		cfApiToken: cfApiToken !== undefined ? (cfApiToken?.trim() || undefined) : current.cfApiToken,
+		cfAccountId: cfAccountId !== undefined ? (cfAccountId?.trim() || undefined) : current.cfAccountId,
 		autoSyncEnabled: autoSyncEnabled !== undefined ? Boolean(autoSyncEnabled) : (current.autoSyncEnabled ?? true),
 		autoSyncIntervalHours:
 			autoSyncIntervalHours != null && !isNaN(Number(autoSyncIntervalHours))

@@ -10,6 +10,8 @@ declare global {
 				SESSION_SECRET?: string;
 				CF_API_TOKEN?: string;
 				CLOUDFLARE_API_TOKEN?: string;
+				CF_ACCOUNT_ID?: string;
+				CLOUDFLARE_ACCOUNT_ID?: string;
 			};
 			context: {
 				waitUntil(promise: Promise<unknown>): void;
