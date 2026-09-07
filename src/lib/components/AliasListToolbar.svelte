@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Tag } from '$lib/types.js';
 	import { DropdownMenu } from 'bits-ui';
+	import { t } from '$lib/i18n';
 
 	type SortField = 'name' | 'created' | 'lastUsed' | 'forwarded';
 	type StatusFilter = 'all' | 'active' | 'disabled' | 'auto' | 'unused';
@@ -33,20 +34,20 @@
 
 	const hasActiveFilters = $derived(statusFilter !== 'all' || selectedTags.length > 0);
 
-	const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
-		{ value: 'all', label: 'All' },
-		{ value: 'active', label: 'Active' },
-		{ value: 'disabled', label: 'Disabled' },
-		{ value: 'auto', label: 'Auto' },
-		{ value: 'unused', label: 'Unused' },
-	];
+	const STATUS_OPTIONS = $derived<{ value: StatusFilter; label: string }[]>([
+		{ value: 'all', label: t('dashboard.filter.all') },
+		{ value: 'active', label: t('dashboard.filter.active') },
+		{ value: 'disabled', label: t('dashboard.filter.disabled') },
+		{ value: 'auto', label: t('dashboard.filter.auto') },
+		{ value: 'unused', label: t('dashboard.filter.unused') },
+	]);
 
-	const SORT_OPTIONS: { field: SortField; label: string }[] = [
-		{ field: 'name', label: 'Name' },
-		{ field: 'created', label: 'Created' },
-		{ field: 'lastUsed', label: 'Last used' },
-		{ field: 'forwarded', label: 'Forwarded' },
-	];
+	const SORT_OPTIONS = $derived<{ field: SortField; label: string }[]>([
+		{ field: 'name', label: t('dashboard.filter.name') },
+		{ field: 'created', label: t('dashboard.filter.created') },
+		{ field: 'lastUsed', label: t('dashboard.filter.lastUsed') },
+		{ field: 'forwarded', label: t('dashboard.filter.forwarded') },
+	]);
 
 	function setSort(field: SortField) {
 		if (sortField === field) {
@@ -77,7 +78,7 @@
 						: 'border-app-border text-app-muted hover:border-app-hover hover:text-app-text'}
 					data-[state=open]:border-app-hover data-[state=open]:text-app-text"
 			>
-				{statusFilter !== 'all' ? STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label : 'Status'}
+				{statusFilter !== 'all' ? STATUS_OPTIONS.find((o) => o.value === statusFilter)?.label : t('dashboard.filter.status')}
 				<svg class="w-3 h-3 shrink-0 transition-transform duration-150 data-[state=open]:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
 				</svg>
@@ -128,9 +129,9 @@
 						data-[state=open]:border-app-hover data-[state=open]:text-app-text"
 				>
 					{#if selectedTags.length > 0}
-						Tags · {selectedTags.length}
+						{t('dashboard.filter.tags')} · {selectedTags.length}
 					{:else}
-						Tags
+						{t('dashboard.filter.tags')}
 					{/if}
 					<svg class="w-3 h-3 shrink-0 transition-transform duration-150 data-[state=open]:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
@@ -181,14 +182,14 @@
 				<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
 				</svg>
-				Clear
+				{t('dashboard.filter.clear')}
 			</button>
 		{/if}
 	</div>
 
 	<!-- Right: sort controls -->
 	<div class="flex items-center gap-0.5 ml-auto" role="group" aria-label="Sort aliases">
-		<span class="text-xs text-app-muted/50 mr-1.5 select-none">Sort</span>
+		<span class="text-xs text-app-muted/50 mr-1.5 select-none">{t('dashboard.filter.sort')}</span>
 		{#each SORT_OPTIONS as opt (opt.field)}
 			{@const active = sortField === opt.field}
 			<button
@@ -227,7 +228,7 @@
 						: 'border-app-border text-app-muted hover:border-app-hover hover:text-app-text'}
 					transition-colors"
 			>
-				{allVisibleSelected ? 'Deselect all' : 'Select all'}
+				{allVisibleSelected ? t('dashboard.filter.deselectAll') : t('dashboard.filter.selectAll')}
 			</button>
 		{/if}
 
@@ -245,12 +246,12 @@
 				<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
 				</svg>
-				Clear
+				{t('dashboard.filter.clear')}
 			{:else}
 				<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
 				</svg>
-				Select
+				{t('dashboard.filter.select')}
 			{/if}
 		</button>
 	</div>
@@ -261,7 +262,7 @@
 		onclick={onShowHelp}
 		aria-label="Show keyboard shortcuts"
 		class="hidden md:flex items-center justify-center w-6 h-6 rounded border border-app-border text-[12px] font-bold text-app-muted/50 hover:text-app-muted hover:border-app-hover transition-colors"
-		title="Keyboard shortcuts (?)"
+		title="{t('shortcuts.title')} (?)"
 	>?</button>
 
 </div>

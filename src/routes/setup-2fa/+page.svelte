@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { ActionData, PageData } from './$types';
+	import { t } from '$lib/i18n/index.js';
+	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -15,10 +17,14 @@
 </script>
 
 <svelte:head>
-	<title>Mandatory 2FA Setup — MailPal</title>
+	<title>{t('auth.setup2faTitle')} — MailPal</title>
 </svelte:head>
 
-<div class="min-h-screen flex items-center justify-center bg-app-bg p-4">
+<div class="min-h-screen flex flex-col items-center justify-center bg-app-bg p-4 relative">
+	<div class="absolute top-4 right-4">
+		<LanguageSwitcher />
+	</div>
+
 	<div class="w-full max-w-lg">
 		<div class="bg-app-surface border border-app-border rounded-2xl shadow-2xl p-8">
 			<div class="text-center mb-6">
@@ -39,9 +45,9 @@
 						/>
 					</svg>
 				</div>
-				<h1 class="text-2xl font-bold text-app-text">Two-Factor Authentication</h1>
-				<p class="text-sm text-app-muted mt-1">
-					2FA is <span class="text-amber-400 font-medium">mandatory</span> for all accounts to ensure system security.
+				<h1 class="text-xl font-bold text-app-text">{t('auth.setup2faTitle')}</h1>
+				<p class="text-xs text-app-muted mt-1">
+					{t('auth.setup2faSubtitle')}
 				</p>
 			</div>
 
@@ -50,24 +56,24 @@
 				<div class="p-3 bg-white rounded-xl shadow-inner inline-block">
 					{@html data.qrSvg}
 				</div>
-				<p class="text-xs text-app-muted mt-2 text-center max-w-xs">
-					Scan this QR code with Google Authenticator, Microsoft Authenticator, or 1Password.
+				<p class="text-xs text-app-muted mt-2 text-center max-w-xs leading-relaxed">
+					{t('auth.scanQrDesc')}
 				</p>
 			</div>
 
 			<!-- Manual entry key -->
 			<div class="mb-6 p-3 rounded-lg bg-app-hover border border-app-border">
 				<div class="flex items-center justify-between text-xs text-app-muted mb-1">
-					<span>Can't scan? Enter key manually:</span>
+					<span>{t('auth.cantScan')}</span>
 					<button
 						type="button"
 						onclick={copySecret}
-						class="text-app-accent hover:underline focus:outline-none"
+						class="text-app-accent hover:underline focus:outline-none text-xs"
 					>
-						{copied ? 'Copied!' : 'Copy Key'}
+						{copied ? t('common.copied') : t('common.copy')}
 					</button>
 				</div>
-				<div class="font-mono text-sm tracking-wider text-app-text select-all break-all">
+				<div class="font-mono text-xs tracking-wider text-app-text select-all break-all">
 					{data.secret}
 				</div>
 			</div>
@@ -75,8 +81,8 @@
 			<!-- Verification form -->
 			<form method="POST" class="space-y-4">
 				<div>
-					<label for="code" class="block text-sm font-medium text-app-text mb-1.5 text-center">
-						Enter 6-Digit Authenticator Code
+					<label for="code" class="block text-xs font-medium text-app-text mb-1.5 text-center">
+						{t('auth.enter6Digits')}
 					</label>
 					<!-- svelte-ignore a11y_autofocus -->
 					<input
@@ -102,14 +108,14 @@
 					type="submit"
 					class="w-full py-2.5 px-4 bg-app-accent hover:brightness-110 text-app-bg text-sm font-semibold rounded-lg transition-all shadow-lg shadow-app-accent/20"
 				>
-					Verify & Activate 2FA
+					{t('auth.verifyAndComplete')}
 				</button>
 			</form>
 
 			<div class="mt-4 pt-4 border-t border-app-border text-center">
 				<form method="POST" action="/logout">
 					<button type="submit" class="text-xs text-app-muted hover:text-red-400 transition-colors">
-						Cancel & Sign Out
+						{t('common.cancel')} & {t('auth.logout')}
 					</button>
 				</form>
 			</div>

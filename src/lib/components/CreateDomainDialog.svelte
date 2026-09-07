@@ -5,6 +5,7 @@
 	import DestinationSelect from './DestinationSelect.svelte';
   import ColorPicker from './ColorPicker.svelte';
   import { randomSwatchColor } from '$lib/constants';
+	import { t } from '$lib/i18n';
 
 	let {
 		open,
@@ -72,7 +73,7 @@
 	}
 </script>
 
-<Dialog {open} title="Add domain" onClose={handleClose}>
+<Dialog {open} title={t('domain.addTitle')} onClose={handleClose}>
 	{#if createdDomain}
 		<!-- ── Success + Cloudflare setup guide ───────────────────────────── -->
 		<div class="p-6 space-y-5">
@@ -84,9 +85,9 @@
 				</div>
 				<div>
 					<p class="text-sm font-medium text-app-text">
-						<span class="font-mono text-app-accent">{createdDomain.domain}</span> added successfully
+						{t('domain.cfAddedSuccess', { domain: createdDomain.domain })}
 					</p>
-					<p class="text-xs text-app-muted mt-0.5">Now configure Email Routing in Cloudflare to activate it.</p>
+					<p class="text-xs text-app-muted mt-0.5">{t('domain.cfConfigNote')}</p>
 				</div>
 			</div>
 
@@ -96,7 +97,7 @@
 						<path fill="#F48120" d="M63.5 56.3l1.5-5.1c0 0-6.8-3.5-13.8.2l-0.2 0.1c-5.2 2.8-8.2 7.9-8.2 7.9H28.6l-1.5 4.8H43c1.5 4.5 6.2 7.3 11.1 6.5 4.3-0.8 7.8-4 8.8-8.2l0.6-6.2z"/>
 						<path fill="#FBAD41" d="M66.4 46.4c-0.3-1.1-0.7-2.2-1.3-3.2-3.7-6.1-12-8.1-18.6-4.5-2.6 1.4-4.7 3.6-6 6.1C38.1 44.3 36 44.5 34.2 45.5c-2.5 1.4-4 3.8-4.1 6.5h42.3C71.9 48.3 69.4 46.4 66.4 46.4z"/>
 					</svg>
-					<span class="text-xs font-semibold uppercase tracking-widest text-app-muted">Cloudflare setup</span>
+					<span class="text-xs font-semibold uppercase tracking-widest text-app-muted">{t('domain.cfSetupTitle')}</span>
 				</div>
 				<ol class="space-y-3">
 					{#each [
@@ -122,7 +123,7 @@
 					onclick={handleClose}
 					class="px-4 py-2 text-sm font-semibold bg-app-accent text-app-bg rounded-lg hover:brightness-110 transition-all"
 				>
-					Done
+					{t('domain.done')}
 				</button>
 			</div>
 		</div>
@@ -132,14 +133,14 @@
 			<div>
 				<div class="flex items-center justify-between mb-1.5">
 					<label for="ed-target" class="text-sm font-medium text-app-text">
-						Domain color
+						{t('domain.colorLabel')}
 					</label>
 				</div>
 				<ColorPicker bind:value={color} open={true} size={6} />
 			</div>
 
 			<div>
-				<label for="cd-domain" class="block text-sm font-medium text-app-text mb-1.5">Domain</label>
+				<label for="cd-domain" class="block text-sm font-medium text-app-text mb-1.5">{t('domain.domainLabel')}</label>
 				<input
 					id="cd-domain"
 					type="text"
@@ -153,28 +154,28 @@
 
 			<div>
 				<label for="cd-target" class="block text-sm font-medium text-app-text mb-1.5">
-					Default target email
+					{t('domain.targetLabel')}
 				</label>
 				<DestinationSelect
 					id="cd-target"
 					{destinations}
 					bind:value={targetEmail}
-					placeholder="Select destination address…"
+					placeholder={t('domain.targetPlaceholder')}
 				/>
-				<p class="text-xs text-app-muted mt-1.5">Where emails forward by default</p>
+				<p class="text-xs text-app-muted mt-1.5">{t('domain.targetHelp')}</p>
 			</div>
 
 			<div class="flex items-center justify-between py-1">
 				<div>
-					<p class="text-sm font-medium text-app-text">Wildcard mode</p>
-					<p class="text-xs text-app-muted mt-0.5">Auto-create aliases on first use</p>
+					<p class="text-sm font-medium text-app-text">{t('domain.wildcardLabel')}</p>
+					<p class="text-xs text-app-muted mt-0.5">{t('domain.wildcardHelp')}</p>
 				</div>
 				<Switch.Root
 					checked={wildcardEnabled}
 					onCheckedChange={(v) => (wildcardEnabled = v)}
 					class="relative inline-flex h-5 w-9 rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-app-accent
 						data-[state=checked]:bg-app-accent data-[state=unchecked]:bg-app-border"
-					aria-label="Toggle wildcard mode"
+					aria-label={t('domain.wildcardLabel')}
 				>
 					<Switch.Thumb
 						class="block h-3.5 w-3.5 mt-[3px] rounded-full bg-white shadow transition-transform
@@ -193,7 +194,7 @@
 					onclick={handleClose}
 					class="px-4 py-2 text-sm text-app-muted hover:text-app-text border border-app-border hover:border-app-hover rounded-lg transition-colors"
 				>
-					Cancel
+					{t('common.cancel')}
 				</button>
 				<button
 					type="submit"
@@ -201,7 +202,7 @@
 					aria-busy={saving}
 					class="px-4 py-2 text-sm font-semibold bg-app-accent text-app-bg rounded-lg hover:brightness-110 transition-all disabled:opacity-40"
 				>
-					{saving ? 'Creating…' : 'Create domain'}
+					{saving ? t('domain.creatingDomain') : t('domain.createDomainBtn')}
 				</button>
 			</div>
 		</form>

@@ -14,6 +14,7 @@
 	import OnboardingFlow from '$lib/components/OnboardingFlow.svelte';
 	import DemoBanner from '$lib/components/DemoBanner.svelte';
   import { onMount } from 'svelte';
+	import { t } from '$lib/i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -235,7 +236,7 @@
 
 	async function bulkDelete() {
 		const count = selectedAliases.length;
-		if (!confirm(`Delete ${count} alias${count === 1 ? '' : 'es'}? This cannot be undone.`)) return;
+		if (!confirm(t('dashboard.bulkDeleteConfirm', { count }))) return;
 		await Promise.all(
 			selectedAliases.map((a) =>
 				fetch(`/api/domains/${a.domain}/aliases/${a.localPart}`, { method: 'DELETE' }).then((r) => {
@@ -357,7 +358,7 @@
 						bulkDelete();
 					} else {
 						const a = targets[0];
-						if (confirm(`Delete ${a.localPart}@${a.domain}? This cannot be undone.`)) {
+						if (confirm(t('dashboard.deleteSingleConfirm', { email: `${a.localPart}@${a.domain}` }))) {
 							fetch(`/api/domains/${a.domain}/aliases/${a.localPart}`, { method: 'DELETE' })
 								.then((r) => { if (r.ok) { removeAlias(a); focusedIdx = Math.min(focusedIdx, visibleAliases.length - 2); } });
 						}
@@ -399,7 +400,7 @@
 	href="#main-content"
 	class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-app-accent focus:text-app-bg focus:rounded-lg focus:font-semibold focus:text-sm focus:shadow-lg"
 >
-	Skip to main content
+	{t('dashboard.skipToMain')}
 </a>
 
 <OnboardingFlow onboarded={data.onboarded && !forceShowOnboarding} />
@@ -446,7 +447,7 @@
 				<!-- Heading + count -->
 				<div class="flex items-baseline gap-3 mb-4">
 					<h2 id="list-heading" class="text-xl font-bold text-app-text">
-						{selectedDomain ?? 'All Addresses'}
+						{selectedDomain ?? t('dashboard.allAddresses')}
 					</h2>
 					<span class="text-sm text-app-muted" aria-live="polite" aria-atomic="true">
 						{visibleAliases.length}{visibleAliases.length !== baseAliases.length ? ` of ${baseAliases.length}` : ''}
@@ -474,7 +475,7 @@
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
 						</svg>
 						<p class="text-sm text-app-muted">
-							{hasActiveFilters || search ? 'No aliases match the current filters.' : 'No aliases yet. Create one above.'}
+							{hasActiveFilters || search ? t('dashboard.noMatchingAliases') : t('dashboard.noAliases')}
 						</p>
 						{#if hasActiveFilters}
 							<button
@@ -482,7 +483,7 @@
 								onclick={clearFilters}
 								class="mt-3 text-xs text-app-accent hover:underline underline-offset-2"
 							>
-								Clear filters
+								{t('dashboard.clearFilters')}
 							</button>
 						{/if}
 					</div>
@@ -500,7 +501,7 @@
 									showDomain={!selectedDomain}
 									color={domainColor(alias.domain)}
 									onToggle={() => toggleAlias(alias)}
-									onTagClick={(name) => {
+									onTagClick={(name: string) => {
 										selectedTags = selectedTags.includes(name)
 											? selectedTags.filter((t) => t !== name)
 											: [...selectedTags, name];
@@ -510,7 +511,7 @@
 									onTagCreated={handleTagCreated}
 									selected={selectedKeys.has(aKey)}
 									{selectionMode}
-									onSelect={(v) => toggleSelect(alias, v)}
+									onSelect={(v: boolean) => toggleSelect(alias, v)}
 									focused={focusedIdx === i}
 									expandTrigger={expandTriggers[aKey] ?? 0}
 								/>

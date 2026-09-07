@@ -1,19 +1,21 @@
 <script lang="ts">
+	import { t } from '$lib/i18n';
+
 	let { show, onClose }: { show: boolean; onClose: () => void } = $props();
 
-	const SHORTCUTS: [string, string][] = [
-		['/', 'Focus search'],
-		['c', 'Focus quick-create'],
-		['j / k', 'Navigate alias list'],
-		['s', 'Toggle expand focused alias'],
-		['e', 'Enable focused alias'],
-		['d', 'Disable focused alias'],
-		['t', 'Toggle enable / disable'],
-		['Backspace', 'Delete focused alias'],
-		['x', 'Toggle select focused'],
-		['Escape', 'Clear / close'],
-		['?', 'Show this help'],
-	];
+	const SHORTCUTS = $derived<[string, string][]>([
+		['/', t('shortcuts.focusSearch')],
+		['c', t('shortcuts.focusCreate')],
+		['j / k', t('shortcuts.navigate')],
+		['s', t('shortcuts.toggleExpand')],
+		['e', t('shortcuts.enableFocused')],
+		['d', t('shortcuts.disableFocused')],
+		['t', t('shortcuts.toggleEnable')],
+		['Backspace', t('shortcuts.deleteFocused')],
+		['x', t('shortcuts.toggleSelect')],
+		['Escape', t('shortcuts.clearClose')],
+		['?', t('shortcuts.showHelp')],
+	]);
 </script>
 
 {#if show}
@@ -27,11 +29,11 @@
 			onclick={(e) => e.stopPropagation()}
 			role="dialog"
 			aria-modal="true"
-			aria-label="Keyboard shortcuts"
+			aria-label={t('shortcuts.title')}
 			tabindex="-1"
 		>
 			<div class="flex items-center justify-between mb-4">
-				<h2 class="font-semibold text-base">Keyboard shortcuts</h2>
+				<h2 class="font-semibold text-base">{t('shortcuts.title')}</h2>
 				<button
 					onclick={onClose}
 					class="p-1 rounded text-app-muted hover:text-app-text hover:bg-app-hover transition-colors"

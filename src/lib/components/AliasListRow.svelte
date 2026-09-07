@@ -6,6 +6,7 @@
 	import CopyButton from './CopyButton.svelte';
 	import DestinationSelect from './DestinationSelect.svelte';
   import ColorPicker from './ColorPicker.svelte';
+	import { t } from '$lib/i18n';
 
 	let {
 		alias,
@@ -96,21 +97,21 @@
 	const expiryBadge = $derived.by((): { label: string; urgency: 'normal' | 'warn' | 'critical' } | null => {
 		if (alias.expiresAt) {
 			const now = Date.now();
-			if (now >= alias.expiresAt) return { label: 'Expired', urgency: 'critical' };
+			if (now >= alias.expiresAt) return { label: t('alias.expired'), urgency: 'critical' };
 			// Compare calendar days in local time to avoid timezone-shifted "today" labels
 			const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
 			const expStart = new Date(alias.expiresAt); expStart.setHours(0, 0, 0, 0);
 			const days = Math.round((expStart.getTime() - todayStart.getTime()) / 86_400_000);
-			if (days === 0) return { label: 'Expires today', urgency: 'critical' };
-			if (days === 1) return { label: 'Expires tomorrow', urgency: 'warn' };
-			if (days <= 7) return { label: `Expires in ${days}d`, urgency: 'warn' };
-			return { label: `Exp. ${new Date(alias.expiresAt).toLocaleDateString()}`, urgency: 'normal' };
+			if (days === 0) return { label: t('alias.expiresToday'), urgency: 'critical' };
+			if (days === 1) return { label: t('alias.expiresTomorrow'), urgency: 'warn' };
+			if (days <= 7) return { label: t('alias.expiresInDays', { days }), urgency: 'warn' };
+			return { label: t('alias.expDate', { date: new Date(alias.expiresAt).toLocaleDateString() }), urgency: 'normal' };
 		}
 		if (alias.maxForwards != null) {
 			const left = alias.maxForwards - alias.forwardedCount;
-			if (left <= 0) return { label: 'Limit reached', urgency: 'critical' };
-			if (left <= 5) return { label: `${left} fwd left`, urgency: 'warn' };
-			return { label: `${alias.forwardedCount}/${alias.maxForwards} fwd`, urgency: 'normal' };
+			if (left <= 0) return { label: t('alias.limitReached'), urgency: 'critical' };
+			if (left <= 5) return { label: t('alias.fwdLeft', { count: left }), urgency: 'warn' };
+			return { label: t('alias.fwdCountRatio', { count: alias.forwardedCount, max: alias.maxForwards }), urgency: 'normal' };
 		}
 		return null;
 	});
@@ -248,12 +249,12 @@
 	function relativeTime(at: number): string {
 		const diff = Date.now() - at;
 		const mins = Math.floor(diff / 60_000);
-		if (mins < 1) return 'just now';
-		if (mins < 60) return `${mins}m ago`;
+		if (mins < 1) return t('alias.justNow');
+		if (mins < 60) return t('alias.minsAgo', { mins });
 		const hrs = Math.floor(mins / 60);
-		if (hrs < 24) return `${hrs}h ago`;
+		if (hrs < 24) return t('alias.hoursAgo', { hrs });
 		const days = Math.floor(hrs / 24);
-		if (days < 30) return `${days}d ago`;
+		if (days < 30) return t('alias.daysAgo', { days });
 		return new Date(at).toLocaleDateString();
 	}
 
@@ -365,16 +366,16 @@
 			<Tooltip.Root delayDuration={300}>
 				<Tooltip.Trigger
 					class="hidden sm:inline-flex items-center px-2.5 py-1 rounded-lg bg-app-hover text-xs text-app-muted shrink-0 cursor-default"
-					aria-label="Auto-created alias"
+					aria-label={t('alias.autoTooltip')}
 				>
-					Auto
+					{t('alias.autoBadge')}
 				</Tooltip.Trigger>
 				<Tooltip.Portal>
 					<Tooltip.Content
 						class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md"
 						sideOffset={4}
 					>
-						Automatically created on first use (wildcard mode)
+						{t('alias.autoTooltip')}
 						<Tooltip.Arrow class="text-app-border" />
 					</Tooltip.Content>
 				</Tooltip.Portal>
@@ -405,7 +406,7 @@
 				<Tooltip.Trigger
 					onclick={(e) => { e.stopPropagation(); expandToActivity(); }}
 					class="flex items-center gap-1 text-xs text-app-muted cursor-pointer hover:text-app-text transition-colors"
-					aria-label="{alias.blockedCount} emails blocked — click to view activity"
+					aria-label={t('alias.blockedTooltip', { count: alias.blockedCount })}
 				>
 					<svg class="w-3.5 h-3.5 text-red-400/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
 						<circle cx="12" cy="12" r="10" stroke-width="2" />
@@ -415,7 +416,7 @@
 				</Tooltip.Trigger>
 				<Tooltip.Portal>
 					<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
-						{alias.blockedCount} blocked — click to view activity
+						{t('alias.blockedTooltip', { count: alias.blockedCount })}
 						<Tooltip.Arrow class="text-app-border" />
 					</Tooltip.Content>
 				</Tooltip.Portal>
@@ -425,7 +426,7 @@
 				<Tooltip.Trigger
 					onclick={(e) => { e.stopPropagation(); expandToActivity(); }}
 					class="flex items-center gap-1 text-xs text-app-muted cursor-pointer hover:text-app-text transition-colors"
-					aria-label="{alias.forwardedCount} emails forwarded — click to view activity"
+					aria-label={t('alias.forwardedTooltip', { count: alias.forwardedCount })}
 				>
 					<svg class="w-3.5 h-3.5 text-green-400/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
@@ -434,7 +435,7 @@
 				</Tooltip.Trigger>
 				<Tooltip.Portal>
 					<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
-						{alias.forwardedCount} forwarded — click to view activity
+						{t('alias.forwardedTooltip', { count: alias.forwardedCount })}
 						<Tooltip.Arrow class="text-app-border" />
 					</Tooltip.Content>
 				</Tooltip.Portal>
@@ -447,7 +448,7 @@
 				onclick={handleToggle}
 				disabled={toggling}
 				aria-pressed={alias.enabled}
-				aria-label={alias.enabled ? 'Disable alias' : 'Enable alias'}
+				aria-label={alias.enabled ? t('alias.disableAlias') : t('alias.enableAlias')}
 				class="flex items-center justify-end gap-2 min-w-[5.5rem] group/toggle disabled:opacity-60"
 			>
 				<div
@@ -455,12 +456,12 @@
 						{alias.enabled ? 'bg-app-accent' : 'bg-red-400/60'}"
 				></div>
 				<span class="hidden sm:block text-[11px] font-bold tracking-widest shrink-0 {alias.enabled ? 'text-app-accent' : 'text-red-400/80'}">
-					{alias.enabled ? 'ACTIVE' : 'DISABLED'}
+					{alias.enabled ? t('alias.activeBadge') : t('alias.disabledBadge')}
 				</span>
 			</Tooltip.Trigger>
 			<Tooltip.Portal>
 				<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
-					{alias.enabled ? 'Disable alias' : 'Enable alias'}
+					{alias.enabled ? t('alias.disableAlias') : t('alias.enableAlias')}
 					<Tooltip.Arrow class="text-app-border" />
 				</Tooltip.Content>
 			</Tooltip.Portal>
@@ -471,7 +472,7 @@
 			<Tooltip.Trigger
 				onclick={toggleExpand}
 				aria-expanded={expanded}
-				aria-label={expanded ? 'Collapse' : 'Edit alias'}
+				aria-label={expanded ? t('alias.collapse') : t('alias.editAlias')}
 				class="p-1.5 rounded transition-colors shrink-0
 					{expanded
 						? 'text-app-accent bg-app-accent/10'
@@ -486,7 +487,7 @@
 			</Tooltip.Trigger>
 			<Tooltip.Portal>
 				<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
-					{expanded ? 'Collapse' : 'Edit alias'}
+					{expanded ? t('alias.collapse') : t('alias.editAlias')}
 					<Tooltip.Arrow class="text-app-border" />
 				</Tooltip.Content>
 			</Tooltip.Portal>
@@ -510,7 +511,7 @@
 								? 'border-app-accent text-app-accent'
 								: 'border-transparent text-app-muted hover:text-app-text'}"
 					>
-						{tab === 'settings' ? 'Settings' : 'Activity'}
+						{tab === 'settings' ? t('alias.tabSettings') : t('alias.tabActivity')}
 					</button>
 				{/each}
 			</div>
@@ -521,33 +522,33 @@
 
 					<!-- Destination override -->
 					<div class="space-y-1.5">
-						<p class="text-xs font-medium text-app-muted">Forward to</p>
+						<p class="text-xs font-medium text-app-muted">{t('alias.forwardTo')}</p>
 						<DestinationSelect
 							{destinations}
 							bind:value={editTargetEmail}
 							allowEmpty={true}
-							emptyLabel="Inherit from domain ({domainTargetEmail})"
-							placeholder="Inherit from domain…"
+							emptyLabel={t('alias.inheritFromDomain', { email: domainTargetEmail })}
+							placeholder={t('alias.inheritPlaceholder')}
 						/>
 					</div>
 
 					<!-- Note -->
 					<div class="space-y-1.5">
 						<label for="row-note-{alias.domain}-{alias.localPart}" class="block text-xs font-medium text-app-muted">
-							Note
+							{t('alias.noteLabel')}
 						</label>
 						<input
 							id="row-note-{alias.domain}-{alias.localPart}"
 							type="text"
 							bind:value={editNote}
-							placeholder="What's this alias for? e.g. GitHub sign-up"
+							placeholder={t('alias.notePlaceholder')}
 							class="w-full px-3 py-2 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted/60 focus:outline-none focus:border-app-accent/60 transition-colors"
 						/>
 					</div>
 
 					<!-- Tags -->
 					<div class="space-y-1.5">
-						<p class="text-xs font-medium text-app-muted">Tags</p>
+						<p class="text-xs font-medium text-app-muted">{t('alias.tagsLabel')}</p>
 						<div class="flex flex-wrap gap-1.5">
 							{#each tags as tag (tag.name)}
 								{@const active = editTags.includes(tag.name)}
@@ -584,7 +585,7 @@
 									<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
 									</svg>
-									New tag
+									{t('alias.newTag')}
 								</button>
 							{/if}
 						</div>
@@ -597,12 +598,12 @@
 								class="flex items-center gap-2 p-2.5 rounded-lg border border-app-border bg-app-bg/40"
 							>
 								<ColorPicker bind:value={newTagColor} />
-								<label for="new-tag-{alias.domain}-{alias.localPart}" class="sr-only">Tag name</label>
+								<label for="new-tag-{alias.domain}-{alias.localPart}" class="sr-only">{t('alias.tagName')}</label>
 								<input
 									id="new-tag-{alias.domain}-{alias.localPart}"
 									type="text"
 									bind:value={newTagName}
-									placeholder="Tag name"
+									placeholder={t('alias.tagName')}
 									required
 									class="flex-1 min-w-0 px-2.5 py-1.5 rounded-md border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
 								/>
@@ -615,14 +616,14 @@
 										onclick={() => { showNewTagForm = false; newTagName = ''; newTagError = ''; }}
 										class="px-2.5 py-1.5 text-xs text-app-muted hover:text-app-text border border-app-border rounded-md transition-colors"
 									>
-										Cancel
+										{t('common.cancel')}
 									</button>
 									<button
 										type="submit"
 										disabled={creatingTag || !newTagName.trim()}
 										class="px-2.5 py-1.5 text-xs font-semibold bg-app-accent text-app-bg rounded-md hover:brightness-110 transition-all disabled:opacity-40"
 									>
-										{creatingTag ? '…' : 'Add'}
+										{creatingTag ? '…' : t('alias.add')}
 									</button>
 								</div>
 							</form>
@@ -632,10 +633,10 @@
 
 				<!-- Auto-disable -->
 				<div class="space-y-1.5">
-					<p class="text-xs font-medium text-app-muted">Auto-disable</p>
+					<p class="text-xs font-medium text-app-muted">{t('alias.autoDisable')}</p>
 					<div class="flex gap-1.5 flex-wrap">
 						{#each (['none', 'date', 'count'] as const) as mode (mode)}
-							{@const label = mode === 'none' ? 'Never' : mode === 'date' ? 'After date' : 'After N emails'}
+							{@const label = mode === 'none' ? t('alias.never') : mode === 'date' ? t('alias.afterDate') : t('alias.afterCount')}
 							<button
 								type="button"
 								onclick={() => { expiryMode = mode; }}
@@ -671,7 +672,7 @@
 								placeholder="e.g. 10"
 								class="w-24 px-3 py-1.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted/60 focus:outline-none focus:border-app-accent/60 transition-colors"
 							/>
-							<span class="text-xs text-app-muted">emails, then disable</span>
+							<span class="text-xs text-app-muted">{t('alias.emailsThenDisable')}</span>
 							{#if expiryBadge}
 								<span class="text-xs {expiryBadge.urgency === 'critical' ? 'text-red-400' : expiryBadge.urgency === 'warn' ? 'text-amber-400' : 'text-app-muted'}">{expiryBadge.label}</span>
 							{/if}
@@ -682,15 +683,15 @@
 				<!-- Stats -->
 				<div class="grid grid-cols-3 gap-2 pt-1 border-t border-app-border/50">
 					<div class="bg-app-hover/60 rounded-lg p-2.5 pt-3">
-						<div class="text-[11px] text-app-muted mb-1">Forwarded</div>
+						<div class="text-[11px] text-app-muted mb-1">{t('alias.forwarded')}</div>
 						<div class="text-base font-bold text-app-text">{alias.forwardedCount}</div>
 					</div>
 					<div class="bg-app-hover/60 rounded-lg p-2.5 pt-3">
-						<div class="text-[11px] text-app-muted mb-1">Blocked</div>
+						<div class="text-[11px] text-app-muted mb-1">{t('alias.blocked')}</div>
 						<div class="text-base font-bold text-app-text">{alias.blockedCount}</div>
 					</div>
 					<div class="bg-app-hover/60 rounded-lg p-2.5 pt-3">
-						<div class="text-[11px] text-app-muted mb-1">Last used</div>
+						<div class="text-[11px] text-app-muted mb-1">{t('alias.lastUsed')}</div>
 						<div class="text-xs font-medium text-app-text leading-tight mt-0.5">
 							{alias.lastUsedAt ? new Date(alias.lastUsedAt).toLocaleDateString() : '—'}
 						</div>
@@ -706,24 +707,24 @@
 							disabled={deleting}
 							class="px-3 py-1.5 text-xs text-red-400/80 hover:text-red-400 border border-red-400/20 hover:border-red-400/50 rounded-lg transition-colors disabled:opacity-40"
 						>
-							{deleting ? 'Deleting…' : 'Delete Address'}
+							{deleting ? t('alias.deleting') : t('alias.deleteAddress')}
 						</AlertDialog.Trigger>
 						<AlertDialog.Portal>
 							<AlertDialog.Overlay class="fixed inset-0 bg-black/65 backdrop-blur-sm z-40" />
 							<AlertDialog.Content class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 rounded-2xl border border-app-border bg-app-surface shadow-2xl w-full max-w-sm text-app-text p-6 focus:outline-none">
-								<AlertDialog.Title class="font-semibold text-app-text mb-1">Delete Address?</AlertDialog.Title>
+								<AlertDialog.Title class="font-semibold text-app-text mb-1">{t('alias.deleteConfirmTitle')}</AlertDialog.Title>
 								<AlertDialog.Description class="text-sm text-app-muted mb-5">
-									<span class="font-mono text-app-text">{fullAddress}</span> will be permanently deleted.
+									{t('alias.deleteConfirmDesc', { address: fullAddress })}
 								</AlertDialog.Description>
 								<div class="flex justify-end gap-2">
 									<AlertDialog.Cancel class="px-4 py-2 text-sm text-app-muted hover:text-app-text border border-app-border hover:border-app-hover rounded-lg transition-colors">
-										Cancel
+										{t('common.cancel')}
 									</AlertDialog.Cancel>
 									<AlertDialog.Action
 										onclick={handleDelete}
 										class="px-4 py-2 text-sm font-semibold bg-red-500 hover:bg-red-400 text-white rounded-lg transition-colors"
 									>
-										Delete
+										{t('common.delete')}
 									</AlertDialog.Action>
 								</div>
 							</AlertDialog.Content>
@@ -746,7 +747,7 @@
 								}}
 								class="px-3 py-1.5 text-xs text-app-muted hover:text-app-text border border-app-border hover:border-app-hover rounded-lg transition-colors"
 							>
-								Discard
+								{t('alias.discard')}
 							</button>
 							<button
 								type="button"
@@ -755,7 +756,7 @@
 								aria-busy={saving}
 								class="px-3 py-1.5 text-xs font-semibold bg-app-accent text-app-bg rounded-lg hover:brightness-110 transition-all disabled:opacity-40"
 							>
-								{saving ? 'Saving…' : 'Save changes'}
+								{saving ? t('alias.saving') : t('alias.saveChanges')}
 							</button>
 						{/if}
 					</div>
@@ -770,14 +771,14 @@
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
 						</svg>
-						<span class="text-xs">Loading…</span>
+						<span class="text-xs">{t('common.loading')}</span>
 					</div>
 				{:else if logError}
 					<p class="text-xs text-red-400 text-center py-6">{logError}</p>
 				{:else if activityLog.length === 0}
 					<div class="text-center py-10">
-						<p class="text-xs text-app-muted">No activity recorded yet.</p>
-						<p class="text-xs text-app-muted/50 mt-1">Events appear after emails are received.</p>
+						<p class="text-xs text-app-muted">{t('alias.noActivityYet')}</p>
+						<p class="text-xs text-app-muted/50 mt-1">{t('alias.eventsAppear')}</p>
 					</div>
 				{:else}
 					<ol class="space-y-1" aria-label="Recent activity">
@@ -792,7 +793,7 @@
 										<span class="text-xs font-medium {entry.action === 'forwarded' ? 'text-green-400' : 'text-red-400'}">
 											{entry.action}
 										</span>
-										<span class="text-xs text-app-muted truncate" title={entry.from}>from {entry.from}</span>
+										<span class="text-xs text-app-muted truncate" title={entry.from}>{t('alias.from')} {entry.from}</span>
 									</div>
 									<p class="text-xs text-app-muted/60 truncate" title={entry.to}>→ {entry.to}</p>
 								</div>

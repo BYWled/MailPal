@@ -1,13 +1,14 @@
 <script lang="ts">
 	import type { DestinationAddress } from '$lib/types.js';
 	import { Select } from 'bits-ui';
+	import { t } from '$lib/i18n';
 
 	let {
 		destinations,
 		value = $bindable(),
-		placeholder = 'Select address…',
+		placeholder,
 		allowEmpty = false,
-		emptyLabel = 'Inherit from domain',
+		emptyLabel,
 		id
 	}: {
 		destinations: DestinationAddress[];
@@ -18,14 +19,17 @@
 		id?: string;
 	} = $props();
 
+	const resolvedPlaceholder = $derived(placeholder ?? t('destSelect.placeholder'));
+	const resolvedEmptyLabel = $derived(emptyLabel ?? t('destSelect.emptyLabel'));
+
 	const items = $derived([
-		...(allowEmpty ? [{ value: '', label: emptyLabel }] : []),
+		...(allowEmpty ? [{ value: '', label: resolvedEmptyLabel }] : []),
 		...destinations.map((d) => ({ value: d.email, label: d.email }))
 	]);
 
 	const selectedLabel = $derived(
 		value === '' && allowEmpty
-			? emptyLabel
+			? resolvedEmptyLabel
 			: (items.find((i) => i.value === value)?.label ?? value)
 	);
 </script>
@@ -46,9 +50,9 @@
 	>
 		<span class="truncate">
 			{#if destinations.length === 0 && !allowEmpty}
-				No destination addresses configured
+				{t('destSelect.noDestinations')}
 			{:else}
-				{value ? selectedLabel : placeholder}
+				{value ? selectedLabel : resolvedPlaceholder}
 			{/if}
 		</span>
 		<svg class="w-3.5 h-3.5 text-app-muted shrink-0 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -83,7 +87,8 @@
 
 {#if destinations.length === 0 && !allowEmpty}
 	<p class="text-xs text-app-muted mt-1.5">
-		Add destination addresses in
-		<span class="text-app-accent">Settings</span> first.
+		{t('destSelect.addInSettingsPrefix')}
+		<span class="text-app-accent">{t('destSelect.settings')}</span>
+		{t('destSelect.addInSettingsSuffix')}
 	</p>
 {/if}

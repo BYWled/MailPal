@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { ActionData } from './$types';
+	import { t } from '$lib/i18n/index.js';
+	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
 
 	let { form }: { form: ActionData } = $props();
 
@@ -12,10 +14,14 @@
 </script>
 
 <svelte:head>
-	<title>Sign In — MailPal</title>
+	<title>{t('auth.signIn')} — MailPal</title>
 </svelte:head>
 
-<div class="min-h-screen flex items-center justify-center bg-app-bg p-4">
+<div class="min-h-screen flex flex-col items-center justify-center bg-app-bg p-4 relative">
+	<div class="absolute top-4 right-4">
+		<LanguageSwitcher />
+	</div>
+
 	<div class="w-full max-w-sm">
 		<div class="bg-app-surface border border-app-border rounded-2xl shadow-2xl p-8">
 			<div class="mb-8 text-center">
@@ -46,7 +52,7 @@
 					<!-- Step 1: Username & Password -->
 					<div>
 						<label for="username" class="block text-sm font-medium text-app-text mb-1.5">
-							Username
+							{t('auth.username')}
 						</label>
 						<input
 							id="username"
@@ -56,13 +62,13 @@
 							autocomplete="username"
 							bind:value={usernameInput}
 							class="w-full px-3 py-2.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
-							placeholder="Enter your username"
+							placeholder={t('auth.username')}
 						/>
 					</div>
 
 					<div>
 						<label for="password" class="block text-sm font-medium text-app-text mb-1.5">
-							Password
+							{t('auth.password')}
 						</label>
 						<input
 							id="password"
@@ -72,7 +78,7 @@
 							autocomplete="current-password"
 							bind:value={passwordInput}
 							class="w-full px-3 py-2.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
-							placeholder="Enter your password"
+							placeholder={t('auth.password')}
 						/>
 					</div>
 
@@ -84,7 +90,7 @@
 						type="submit"
 						class="w-full py-2.5 px-4 bg-app-accent hover:brightness-110 text-app-bg text-sm font-semibold rounded-lg transition-all"
 					>
-						Continue
+						{t('auth.signIn')}
 					</button>
 				{:else}
 					<!-- Step 2: 2FA Verification Code -->
@@ -92,13 +98,13 @@
 					<input type="hidden" name="password" value={passwordInput} />
 
 					<div class="text-center mb-2">
-						<div class="text-xs text-app-muted">Signing in as</div>
+						<div class="text-xs text-app-muted">{t('auth.signingInAs')}</div>
 						<div class="font-medium text-app-text">{effectiveUsername}</div>
 					</div>
 
 					<div>
 						<label for="totpCode" class="block text-sm font-medium text-app-text mb-1.5 text-center">
-							6-Digit 2FA Code
+							{t('auth.totpCode')}
 						</label>
 						<!-- svelte-ignore a11y_autofocus -->
 						<input
@@ -125,7 +131,7 @@
 						type="submit"
 						class="w-full py-2.5 px-4 bg-app-accent hover:brightness-110 text-app-bg text-sm font-semibold rounded-lg transition-all"
 					>
-						Verify & Sign In
+						{t('auth.verifyAndSignIn')}
 					</button>
 
 					<div class="text-center pt-2">
@@ -133,7 +139,7 @@
 							href="/login"
 							class="text-xs text-app-muted hover:text-app-text transition-colors"
 						>
-							← Back to username & password
+							← {t('common.back')}
 						</a>
 					</div>
 				{/if}

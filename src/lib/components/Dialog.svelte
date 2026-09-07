@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { Dialog } from 'bits-ui';
+	import { t } from '$lib/i18n';
 
 	let {
 		open,
@@ -32,7 +33,7 @@
 				</div>
 				<Dialog.Close
 					class="p-1.5 text-app-muted hover:text-app-text hover:bg-app-hover rounded-lg transition-colors"
-					aria-label="Close dialog"
+					aria-label={t('common.closeDialog')}
 				>
 					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

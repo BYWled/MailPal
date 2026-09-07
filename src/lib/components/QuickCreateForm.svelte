@@ -2,6 +2,7 @@
 	import type { AliasConfig, DomainConfig } from '$lib/types.js';
 	import { generateSlug } from '$lib/sluggen.js';
 	import { Select, Tooltip, Popover } from 'bits-ui';
+	import { t } from '$lib/i18n/index.js';
 
 	let {
 		domains,
@@ -106,9 +107,8 @@
 	{#if domains.length === 0}
 		<p class="text-sm text-app-muted">
 			<button onclick={onAddDomain} class="text-app-accent hover:underline underline-offset-2">
-				Add a domain
+				{t('sidebar.addDomain')}
 			</button>
-			first to start creating aliases.
 		</p>
 	{:else}
 		<form onsubmit={handleSubmit} aria-describedby={error ? errorId : undefined}>
@@ -123,7 +123,7 @@
 						id="new-local-part"
 						bind:value={newLocalPart}
 						type="text"
-						placeholder="New address"
+						placeholder={t('quickCreate.placeholder')}
 						autocomplete="off"
 						autocapitalize="none"
 						class="flex-1 px-3 py-2.5 bg-transparent text-sm text-app-text placeholder:text-app-muted outline-none min-w-0"
@@ -145,7 +145,7 @@
 						>
 							<Select.Trigger
 								class="flex items-center gap-1.5 px-3 border-l border-app-border text-app-muted text-sm whitespace-nowrap hover:text-app-text transition-colors cursor-pointer outline-none"
-								aria-label="Select domain"
+								aria-label={t('quickCreate.selectDomain')}
 							>
 								@{newDomain}
 								<svg class="w-3 h-3 opacity-60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -198,7 +198,7 @@
 								sideOffset={8}
 								side="bottom"
 							>
-								Generate random alias
+								Random
 								<Tooltip.Arrow class="text-app-border" />
 							</Tooltip.Content>
 						</Tooltip.Portal>
@@ -212,7 +212,7 @@
 									<Popover.Trigger
 										{...props}
 										type="button"
-										aria-label="Set expiry"
+										aria-label={t('alias.expiry')}
 										class="px-3 border-l border-app-border transition-colors
 											{hasExpiry ? 'text-app-accent' : 'text-app-muted hover:text-app-accent'}"
 									>
@@ -229,7 +229,7 @@
 									sideOffset={8}
 									side="bottom"
 								>
-									{hasExpiry ? 'Edit expiry' : 'Set expiry'}
+									{t('alias.expiry')}
 									<Tooltip.Arrow class="text-app-border" />
 								</Tooltip.Content>
 							</Tooltip.Portal>
@@ -242,12 +242,12 @@
 								align="end"
 								class="z-50 w-80 rounded-xl border border-app-border bg-app-surface shadow-xl p-3 space-y-3"
 							>
-								<p class="text-xs font-semibold text-app-text">Auto-disable</p>
+								<p class="text-xs font-semibold text-app-text">{t('alias.expiry')}</p>
 
 								<!-- Mode pills -->
 								<div class="flex gap-1.5">
 									{#each (['none', 'date', 'count'] as const) as mode (mode)}
-										{@const label = mode === 'none' ? 'Never' : mode === 'date' ? 'After date' : 'After N emails'}
+										{@const label = mode === 'none' ? t('alias.neverExpires') : mode === 'date' ? t('alias.expiresOn') : t('alias.maxForwards')}
 										<button
 											type="button"
 											onclick={() => { expiryMode = mode; }}
@@ -270,7 +270,6 @@
 											min={new Date().toISOString().slice(0, 10)}
 											class="w-full px-3 py-1.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text focus:outline-none focus:border-app-accent/60 transition-colors [color-scheme:dark]"
 										/>
-										<p class="text-xs text-app-muted">Alias is disabled after this date.</p>
 									</div>
 								{:else if expiryMode === 'count'}
 									<div class="space-y-1">
@@ -284,7 +283,6 @@
 												class="w-full px-3 py-1.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted/60 focus:outline-none focus:border-app-accent/60 transition-colors"
 											/>
 										</div>
-										<p class="text-xs text-app-muted">Alias is disabled after this many forwards.</p>
 									</div>
 								{/if}
 							</Popover.Content>
@@ -298,17 +296,17 @@
 					aria-busy={creating}
 					class="px-5 py-2.5 rounded-lg bg-app-accent text-app-bg text-sm border border-app-bg font-semibold hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
 				>
-					Create
+					{creating ? t('quickCreate.creating') : t('quickCreate.createBtn')}
 				</button>
 			</div>
 
 			{#if isDomainLimitReached}
 				<p class="mt-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg">
-					Domain @{newDomain} has reached the hard limit of 50 aliases. Delete existing aliases or switch domains.
+					{t('quickCreate.limitReachedWarn')}
 				</p>
 			{:else if isUserQuotaReached}
 				<p class="mt-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg">
-					You have reached your personal quota of {userQuota} email aliases. Contact administrator to increase your quota.
+					{t('quickCreate.quotaExhaustedWarn', { quota: userQuota ?? 0 })}
 				</p>
 			{/if}
 

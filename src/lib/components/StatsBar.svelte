@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { AliasConfig } from '$lib/types.js';
+	import { t } from '$lib/i18n';
 
 	let { aliases }: { aliases: AliasConfig[] } = $props();
 
@@ -16,10 +17,10 @@
 	}
 
 	const stats = $derived([
-		{ label: 'Total', value: fmt(totalAliases), title: totalAliases.toString() },
-		{ label: 'Active', value: fmt(activeAliases), title: activeAliases.toString() },
-		{ label: 'Forwarded', value: fmt(totalForwarded), title: totalForwarded.toString() },
-		{ label: 'Blocked', value: fmt(totalBlocked), title: totalBlocked.toString() },
+		{ key: 'total', label: t('dashboard.stats.total'), value: fmt(totalAliases), title: totalAliases.toString() },
+		{ key: 'active', label: t('dashboard.stats.active'), value: fmt(activeAliases), title: activeAliases.toString() },
+		{ key: 'forwarded', label: t('dashboard.stats.forwarded'), value: fmt(totalForwarded), title: totalForwarded.toString() },
+		{ key: 'blocked', label: t('dashboard.stats.blocked'), value: fmt(totalBlocked), title: totalBlocked.toString() },
 	]);
 </script>
 
@@ -27,7 +28,7 @@
 	class="grid grid-cols-4 divide-x divide-app-border rounded-xl border border-app-border bg-app-surface overflow-hidden"
 	aria-label="Overview statistics"
 >
-	{#each stats as stat (stat.label)}
+	{#each stats as stat (stat.key)}
 		<div class="px-4 py-3 flex items-center justify-start gap-2">
 			<dd class="text-lg font-bold text-app-text tabular-nums leading-tight" title={stat.title}>{stat.value}</dd>
 			<dt class="text-[11px] text-app-muted uppercase tracking-wide leading-none">{stat.label}</dt>

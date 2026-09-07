@@ -1,14 +1,20 @@
 <script lang="ts">
 	import type { ActionData } from './$types';
+	import { t } from '$lib/i18n/index.js';
+	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
 
 	let { form }: { form: ActionData } = $props();
 </script>
 
 <svelte:head>
-	<title>Initial Admin Setup — MailPal</title>
+	<title>{t('auth.registerTitle')} — MailPal</title>
 </svelte:head>
 
-<div class="min-h-screen flex items-center justify-center bg-app-bg p-4">
+<div class="min-h-screen flex flex-col items-center justify-center bg-app-bg p-4 relative">
+	<div class="absolute top-4 right-4">
+		<LanguageSwitcher />
+	</div>
+
 	<div class="w-full max-w-md">
 		<div class="bg-app-surface border border-app-border rounded-2xl shadow-2xl p-8">
 			<div class="mb-8 text-center">
@@ -30,16 +36,16 @@
 						/>
 					</svg>
 				</div>
-				<h1 class="text-2xl font-bold text-app-text">Initial Admin Setup</h1>
-				<p class="text-sm text-app-muted mt-1.5">
-					Welcome to MailPal! You are registering the <span class="text-app-accent font-medium">first account</span>, which will have Superadmin privileges.
+				<h1 class="text-xl font-bold text-app-text">{t('auth.registerTitle')}</h1>
+				<p class="text-xs text-app-muted mt-1.5 leading-relaxed">
+					{t('auth.registerSubtitle')}
 				</p>
 			</div>
 
 			<form method="POST" class="space-y-4">
 				<div>
-					<label for="username" class="block text-sm font-medium text-app-text mb-1.5">
-						Admin Username
+					<label for="username" class="block text-xs font-medium text-app-text mb-1.5">
+						{t('auth.username')} *
 					</label>
 					<input
 						id="username"
@@ -53,8 +59,8 @@
 				</div>
 
 				<div>
-					<label for="password" class="block text-sm font-medium text-app-text mb-1.5">
-						Password (min 8 characters)
+					<label for="password" class="block text-xs font-medium text-app-text mb-1.5">
+						{t('auth.passwordMinChars')} *
 					</label>
 					<input
 						id="password"
@@ -69,8 +75,8 @@
 				</div>
 
 				<div>
-					<label for="confirmPassword" class="block text-sm font-medium text-app-text mb-1.5">
-						Confirm Password
+					<label for="confirmPassword" class="block text-xs font-medium text-app-text mb-1.5">
+						{t('auth.confirmPassword')} *
 					</label>
 					<input
 						id="confirmPassword"
@@ -93,7 +99,7 @@
 						type="submit"
 						class="w-full py-2.5 px-4 bg-app-accent hover:brightness-110 text-app-bg text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-app-accent/20"
 					>
-						Register as Superadmin & Continue to 2FA
+						{t('auth.createSuperadmin')}
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
 						</svg>

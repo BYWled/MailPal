@@ -3,8 +3,11 @@
 	import { Tooltip } from 'bits-ui';
 	import { onMount } from 'svelte';
 	import type { LayoutData } from './$types';
+	import { initLocale } from '$lib/i18n/index.js';
 
 	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
+
+	initLocale(data.lang);
 
 	const DEMO_COOKIE = 'demo_state';
 	const DEMO_LS_KEY = 'mailpal-demo-state';

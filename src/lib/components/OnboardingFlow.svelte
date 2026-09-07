@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { t } from '$lib/i18n';
 
 	let { onboarded = false }: { onboarded?: boolean } = $props();
 
@@ -146,7 +147,7 @@
 		onclick={complete}
 		class="absolute top-5 right-5 text-xs text-app-muted/35 hover:text-app-muted/70 transition-colors px-2 py-1 rounded"
 	>
-		Skip
+		{t('onboarding.skip')}
 	</button>
 
 	<!-- Step dots -->
@@ -186,10 +187,10 @@
 			</div>
 			
 			<h1 class="text-[2.6rem] leading-tight font-light text-app-text mb-3">
-				Welcome to <span class="font-bold">MailPal.</span>
+				{t('onboarding.screen0Title')} <span class="font-bold">MailPal.</span>
 			</h1>
 			<p class="text-lg text-app-muted leading-relaxed">
-				Your friendly guardian for email privacy.
+				{t('onboarding.screen0Subtitle')}
 			</p>
 
 		<!-- ── Screen 1: Privacy ──────────────────────────────────── -->
@@ -207,12 +208,11 @@
 			</a>
 
 			<h1 class="text-[2.2rem] leading-tight font-light text-app-text mb-3">
-				Your real email,<br><span class="font-bold">never exposed.</span>
+				{t('onboarding.screen1Title')}<br><span class="font-bold">{t('onboarding.screen1TitleHighlight')}</span>
 			</h1>
 
 			<p class="text-base text-app-muted leading-relaxed">
-				Create a unique alias for every service you sign up to.<br>
-				Spam lands on the alias — your real address stays yours.
+				{t('onboarding.screen1Subtitle')}
 			</p>
 
 			<!-- ── Flow diagram: website → alias → inbox ─── -->
@@ -227,7 +227,7 @@
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
 							</svg>
 						</div>
-						<span class="text-[10px] text-app-muted/45 leading-tight text-center">Any<br>Website</span>
+						<span class="text-[10px] text-app-muted/45 leading-tight text-center whitespace-pre-line">{t('onboarding.anyWebsite')}</span>
 					</div>
 
 					<!-- Connector 1 -->
@@ -249,7 +249,7 @@
 							<span class="text-[11px] font-mono text-app-accent leading-snug whitespace-nowrap">shop-pine-wood</span>
 							<span class="text-[11px] font-mono text-app-accent leading-snug whitespace-nowrap">@yourdomain.com</span>
 						</div>
-						<span class="text-[10px] text-app-accent/55 leading-tight text-center">Your Alias</span>
+						<span class="text-[10px] text-app-accent/55 leading-tight text-center">{t('onboarding.yourAlias')}</span>
 					</div>
 
 					<!-- Connector 2 -->
@@ -278,7 +278,7 @@
 								</svg>
 							</div>
 						</div>
-						<span class="text-[10px] text-app-muted/45 leading-tight text-center">Your<br>Inbox</span>
+						<span class="text-[10px] text-app-muted/45 leading-tight text-center whitespace-pre-line">{t('onboarding.yourInbox')}</span>
 					</div>
 
 				</div>
@@ -299,11 +299,11 @@
 			</a>
 
 			<h1 class="text-[2.2rem] leading-tight font-light text-app-text mb-3">
-				Silence anything,<br><span class="font-bold">in an instant.</span>
+				{t('onboarding.screen2Title')}<br><span class="font-bold">{t('onboarding.screen2TitleHighlight')}</span>
 			</h1>
 
 			<p class="text-base text-app-muted leading-relaxed">
-				Disable any alias in one click. Or let it expire automatically after a certain date or after a specific number of emails.
+				{t('onboarding.screen2Subtitle')}
 			</p>
 
 			<div class="w-full max-w-sm mt-8 space-y-2 min-h-[135px]">
@@ -314,13 +314,10 @@
 				>
 					<div class="flex items-center justify-between gap-3">
 						<div class="text-sm font-mono text-app-text w-fit">{ALIAS_TEXT}</div>
-						<!-- <div>
-							<div class="text-xs text-app-muted mt-0.5 w-fit">Online shopping</div>
-						</div> -->
 						<!-- Status indicator -->
 						<div class="flex items-center gap-1.5 text-xs font-bold tracking-widest shrink-0 transition-colors duration-700 {demoEnabled ? 'text-app-accent' : 'text-red-400/80'}">
 							<div class="w-2.5 h-2.5 rounded-full transition-colors duration-700 {demoEnabled ? 'bg-app-accent' : 'bg-red-400/60'}"></div>
-							{demoEnabled ? 'ACTIVE' : 'DISABLED'}
+							{demoEnabled ? t('common.active').toUpperCase() : t('common.disabled').toUpperCase()}
 						</div>
 					</div>
 
@@ -331,7 +328,7 @@
 								<circle cx="12" cy="12" r="10" stroke-width="2"/>
 								<path stroke-linecap="round" stroke-width="2" d="M4.93 4.93l14.14 14.14"/>
 							</svg>
-							Forwarding stopped — spam goes nowhere
+							{t('onboarding.forwardingStopped')}
 						</div>
 					</div>
 				</div>
@@ -343,13 +340,13 @@
 							<circle cx="12" cy="12" r="9" stroke-width="2"/>
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 3"/>
 						</svg>
-						Auto-expire after date
+						{t('onboarding.autoExpireDate')}
 					</div>
 					<div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-app-border bg-app-surface text-xs text-app-muted/55">
 						<svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
 						</svg>
-						Limit email count
+						{t('onboarding.limitEmailCount')}
 					</div>
 				</div>
 			</div>
@@ -369,19 +366,18 @@
 			</a>
 
 			<h1 class="text-[2.2rem] leading-tight font-light text-app-text mb-3">
-				Know every alias<br><span class="font-bold">at a glance.</span>
+				{t('onboarding.screen3Title')}<br><span class="font-bold">{t('onboarding.screen3TitleHighlight')}</span>
 			</h1>
 
 			<p class="text-base text-app-muted leading-relaxed">
-				Add notes, colored tags, and filter by status and domain.<br>
-				Always know which alias you used with who and why.
+				{t('onboarding.screen3Subtitle')}
 			</p>
 
 			<div class="w-full max-w-sm mt-8">
 				<div class="bg-app-surface border border-app-border rounded-xl px-4 py-4 space-y-3">
 					<div class="flex items-center justify-between">
 						<span class="text-sm font-mono text-app-text">amazon-orders@yourdomain.com</span>
-						<span class="text-[10px] font-bold tracking-widest text-app-accent">ACTIVE</span>
+						<span class="text-[10px] font-bold tracking-widest text-app-accent">{t('common.active').toUpperCase()}</span>
 					</div>
 
 					<!-- Note fades in with first tag -->
@@ -389,15 +385,15 @@
 						class="text-xs text-app-muted/75 text-left border-l-2 border-app-border pl-2.5 transition-all duration-500
 							{visibleTags >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}"
 					>
-						"Online shopping returns"
+						{t('onboarding.demoNote')}
 					</div>
 
 					<!-- Tags appear with stagger -->
 					<div class="flex gap-1.5 flex-wrap">
 						{#each [
-							{ name: 'shopping', color: '#3b82f6' },
-							{ name: 'amazon',   color: '#f59e0b' },
-							{ name: 'returns',  color: '#10b981' },
+							{ name: t('onboarding.tagShopping'), color: '#3b82f6' },
+							{ name: t('onboarding.tagAmazon'),   color: '#f59e0b' },
+							{ name: t('onboarding.tagReturns'),  color: '#10b981' },
 						] as tag, i}
 							<span
 								class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs transition-all duration-500"
@@ -425,12 +421,11 @@
 			</a>
 
 			<h1 class="text-[2.2rem] leading-tight font-light text-app-text mb-3">
-				Running on <span class="font-bold">your infra.</span>
+				{t('onboarding.screen4Title')} <span class="font-bold">{t('onboarding.screen4TitleHighlight')}</span>
 			</h1>
 
 			<p class="text-base text-app-muted leading-relaxed">
-				MailPal runs entirely inside your own Cloudflare account.<br>
-				Your emails, your data — nothing gets shared.
+				{t('onboarding.screen4Subtitle')}
 			</p>
 
 			<!-- Visual: Cloudflare infrastructure -->
@@ -444,7 +439,7 @@
 					<div class="flex items-center gap-2">
 						<!-- Cloudflare cloud icon -->
 						<svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 shrink-0" aria-label="Cloudflare" role="img" viewBox="0 0 512 512"><path fill="#f38020" d="M331 326c11-26-4-38-19-38l-148-2c-4 0-4-6 1-7l150-2c17-1 37-15 43-33 0 0 10-21 9-24a97 97 0 0 0-187-11c-38-25-78 9-69 46-48 3-65 46-60 72 0 1 1 2 3 2h274c1 0 3-1 3-3z"/><path fill="#faae40" d="M381 224c-4 0-6-1-7 1l-5 21c-5 16 3 30 20 31l32 2c4 0 4 6-1 7l-33 1c-36 4-46 39-46 39 0 2 0 3 2 3h113l3-2a81 81 0 0 0-78-103"/></svg>
-						<span class="text-sm font-semibold" style="color: #f6821f">Your Cloudflare account</span>
+						<span class="text-sm font-semibold" style="color: #f6821f">{t('onboarding.cfAccount')}</span>
 					</div>
 
 					<!-- Three service pills -->
@@ -455,7 +450,7 @@
 							<svg class="w-5 h-5 transition-colors ease-in-out text-app-muted group-hover/cf-item:text-app-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/>
 							</svg>
-							<span class="text-[10px] text-app-text text-center leading-snug">Workers<br>Runtime</span>
+							<span class="text-[10px] text-app-text text-center leading-snug whitespace-pre-line">{t('onboarding.cfWorkers')}</span>
 						</div>
 
 						<!-- KV -->
@@ -464,7 +459,7 @@
 								<ellipse cx="12" cy="5" rx="9" ry="3" stroke-width="1.5"/>
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/>
 							</svg>
-							<span class="text-[10px] text-app-text text-center leading-snug">KV<br>Storage</span>
+							<span class="text-[10px] text-app-text text-center leading-snug whitespace-pre-line">{t('onboarding.cfKv')}</span>
 						</div>
 
 						<!-- Email Routing -->
@@ -472,20 +467,11 @@
 							<svg class="w-5 h-5 transition-colors ease-in-out text-app-muted group-hover/cf-item:text-app-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
 							</svg>
-							<span class="text-[10px] text-app-text text-center leading-snug">Email<br>Routing</span>
+							<span class="text-[10px] text-app-text text-center leading-snug whitespace-pre-line">{t('onboarding.cfRouting')}</span>
 						</div>
 
 					</div>
 				</div>
-
-				<!-- Footnote -->
-				<!-- <div class="flex items-center justify-center gap-1.5 mt-4 text-[11px] text-app-muted">
-					<svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-						<rect x="3" y="11" width="18" height="11" rx="2" stroke-width="2"/>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11V7a5 5 0 0110 0v4"/>
-					</svg>
-					no third-party servers, ever
-				</div> -->
 			</div>
 		{/if}
 
@@ -499,7 +485,7 @@
 		>
 			<span class="btn-shimmer absolute inset-0 rounded-xl" aria-hidden="true"></span>
 			<span class="relative font-medium">
-				{displayStep === LAST_STEP ? 'Get started' : 'Continue'}
+				{displayStep === LAST_STEP ? t('onboarding.getStarted') : t('onboarding.continue')}
 			</span>
 			<svg
 				class="relative w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5"
@@ -509,7 +495,7 @@
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
 			</svg>
 		</button>
-		<p class="text-[11px] text-app-muted mt-2.5 tracking-wide">or press Enter</p>
+		<p class="text-[11px] text-app-muted mt-2.5 tracking-wide">{t('onboarding.orPressEnter')}</p>
 	</div>
 </div>
 {/if}

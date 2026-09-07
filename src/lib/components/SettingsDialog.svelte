@@ -2,7 +2,8 @@
 	import type { DestinationAddress, Tag } from '$lib/types.js';
 	import Dialog from './Dialog.svelte';
 	import ColorPicker from './ColorPicker.svelte';
-  import { randomSwatchColor, SWATCHES } from '$lib/constants';
+	import { randomSwatchColor, SWATCHES } from '$lib/constants';
+	import { t } from '$lib/i18n';
 
 	let {
 		open,
@@ -53,14 +54,14 @@
 			});
 			const body = await res.json();
 			if (!res.ok) {
-				addError = body.error ?? 'Failed to add address';
+				addError = body.error ?? t('settingsDialog.failedToAdd');
 			} else {
 				onAdded(body as DestinationAddress);
 				justAdded = newEmail.trim();
 				newEmail = '';
 			}
 		} catch {
-			addError = 'Network error';
+			addError = t('settingsDialog.networkError');
 		} finally {
 			adding = false;
 			showDestinationForm = false;
@@ -68,7 +69,7 @@
 	}
 
 	async function handleDelete(email: string) {
-		const confirmDelete = confirm(`Are you sure you want to delete the destination address "${email}"? This will stop all mail from being forwarded to this address.`);
+		const confirmDelete = confirm(t('settingsDialog.deleteDestConfirm', { email }));
 		if (!confirmDelete) return;
 
 		deletingEmail = email;
@@ -94,7 +95,7 @@
 			});
 			const body = await res.json();
 			if (!res.ok) {
-				addTagError = body.error ?? 'Failed to create tag';
+				addTagError = body.error ?? t('settingsDialog.failedToCreateTag');
 			} else {
 				onTagCreated(body as Tag);
 				newTagName = '';
@@ -102,14 +103,14 @@
 				showTagForm = false;
 			}
 		} catch {
-			addTagError = 'Network error';
+			addTagError = t('settingsDialog.networkError');
 		} finally {
 			addingTag = false;
 		}
 	}
 
 	async function handleDeleteTag(name: string) {
-		const confirmDelete = confirm(`Are you sure you want to delete the tag "${name}"? This will remove it from all addresses.`);
+		const confirmDelete = confirm(t('settingsDialog.deleteTagConfirm', { name }));
 		if (!confirmDelete) return;
 
 		deletingTag = name;
@@ -150,21 +151,20 @@
 	}
 </script>
 
-<Dialog open={open} title="Settings" onClose={handleClose}>
+<Dialog open={open} title={t('settingsDialog.title')} onClose={handleClose}>
 	<div class="p-6 space-y-4">
 
 		<!-- Section header -->
 		<div>
-			<h3 class="text-sm font-semibold text-app-text mb-0.5">Destination Addresses</h3>
+			<h3 class="text-sm font-semibold text-app-text mb-0.5">{t('settingsDialog.destinationsTitle')}</h3>
 			<p class="text-xs text-app-muted leading-relaxed">
-				Email addresses that Cloudflare Email Routing can forward mail to.
-				Each address must be verified in Cloudflare before it can receive mail.
+				{t('settingsDialog.destinationsDesc')}
 			</p>
 		</div>
 
 		<!-- Address list -->
 		{#if destinations.length > 0}
-			<ul class="space-y-2" aria-label="Destination addresses">
+			<ul class="space-y-2" aria-label={t('settingsDialog.destinationsTitle')}>
 				{#each destinations as dest (dest.email)}
 					<li class="flex flex-col gap-2">
 						<div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-app-hover border border-app-border">
@@ -174,7 +174,7 @@
 							<button
 								onclick={() => handleDelete(dest.email)}
 								disabled={deletingEmail === dest.email}
-								aria-label="Remove {dest.email}"
+								aria-label={t('settingsDialog.removeAddressAria', { email: dest.email })}
 								class="p-1 text-app-muted/60 hover:text-red-400 rounded transition-colors disabled:opacity-40 shrink-0"
 							>
 								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -186,12 +186,12 @@
 						<!-- Cloudflare setup guide for newly added address -->
 						{#if justAdded === dest.email}
 							<div class="ml-3 pl-3 border-l-2 border-app-accent/30 space-y-2.5">
-								<p class="text-xs font-medium text-app-accent">Verify this address in Cloudflare</p>
+								<p class="text-xs font-medium text-app-accent">{t('settingsDialog.verifyInCf')}</p>
 								<ol class="space-y-2">
 									{#each [
-										'In the Cloudflare dashboard, go to Email → Email Routing → Destination Addresses.',
-										'Click Add destination address, enter ' + dest.email + ', and click Send verification email.',
-										'Check your inbox for an email from Cloudflare and click the verification link.'
+										t('settingsDialog.cfStep1'),
+										t('settingsDialog.cfStep2', { email: dest.email }),
+										t('settingsDialog.cfStep3')
 									] as instruction, i}
 										<li class="flex gap-2.5 text-xs text-app-muted leading-relaxed">
 											<span class="flex-none w-4 h-4 rounded-full border border-app-border text-[10px] font-bold flex items-center justify-center mt-px text-app-muted/70" aria-hidden="true">
@@ -208,7 +208,7 @@
 			</ul>
 		{:else}
 			<p class="text-sm text-app-muted text-center py-4 rounded-lg border border-dashed border-app-border">
-				No destination addresses yet
+				{t('settingsDialog.noDestinations')}
 			</p>
 		{/if}
 
@@ -216,7 +216,7 @@
 			<!-- Add address form -->
 			<form onsubmit={handleAdd} class="space-y-2">
 				<label for="dest-email" class="block text-xs font-medium text-app-muted">
-					Add destination address
+					{t('settingsDialog.addDestination')}
 				</label>
 				<div class="flex gap-2">
 					<input
@@ -233,7 +233,7 @@
 						aria-busy={adding}
 						class="px-4 py-1.5 text-xs font-semibold bg-app-accent text-app-bg rounded-lg hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
 					>
-						{adding ? 'Adding…' : 'Add'}
+						{adding ? t('settingsDialog.adding') : t('settingsDialog.add')}
 					</button>
 					<button
 						type="button"
@@ -256,7 +256,7 @@
 				onclick={handleShowDestinationForm}
 				class="text-xs text-app-accent hover:underline underline-offset-2 ml-2"
 			>
-				+ Add destination address
+				+ {t('settingsDialog.addDestination')}
 			</button>
 		{/if}
 
@@ -264,14 +264,14 @@
 
 		<!-- Tags section -->
 		<div>
-			<h3 class="text-sm font-semibold text-app-text mb-0.5">Tags</h3>
+			<h3 class="text-sm font-semibold text-app-text mb-0.5">{t('settingsDialog.tagsTitle')}</h3>
 			<p class="text-xs text-app-muted leading-relaxed">
-				Organize addresses with colored tags for filtering and grouping.
+				{t('settingsDialog.tagsDesc')}
 			</p>
 		</div>
 
 		{#if tags.length > 0}
-			<ul class="space-y-2" aria-label="Tags">
+			<ul class="space-y-2" aria-label={t('settingsDialog.tagsTitle')}>
 				{#each tags as tag (tag.name)}
 					<li class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-app-hover border border-app-border">
 						<ColorPicker bind:value={tag.color} size={3} onChange={(value) => { if (value) handleUpdateTag({ ...tag, color: value }); }} />
@@ -279,7 +279,7 @@
 						<button
 							onclick={() => handleDeleteTag(tag.name)}
 							disabled={deletingTag === tag.name}
-							aria-label="Delete tag {tag.name}"
+							aria-label={t('settingsDialog.deleteTagAria', { name: tag.name })}
 							class="p-1 text-app-muted/60 hover:text-red-400 rounded transition-colors disabled:opacity-40 shrink-0"
 						>
 							<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -291,7 +291,7 @@
 			</ul>
 		{:else}
 			<p class="text-sm text-app-muted text-center py-4 rounded-lg border border-dashed border-app-border">
-				No tags yet
+				{t('settingsDialog.noTags')}
 			</p>
 		{/if}
 
@@ -302,7 +302,7 @@
 					<input
 						type="text"
 						bind:value={newTagName}
-						placeholder="Tag name"
+						placeholder={t('settingsDialog.tagNamePlaceholder')}
 						required
 						class="flex-1 px-3 py-1.5 w-full rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
 					/>
@@ -312,7 +312,7 @@
 						aria-busy={addingTag}
 						class="px-3 py-2 text-xs font-semibold bg-app-accent text-app-bg rounded-lg hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
 					>
-						{addingTag ? 'Saving…' : 'Save'}
+						{addingTag ? t('settingsDialog.saving') : t('settingsDialog.save')}
 					</button>
 					<button
 						type="button"
@@ -335,7 +335,7 @@
 				onclick={handleShowAddTag}
 				class="text-xs text-app-accent hover:underline underline-offset-2 ml-2"
 			>
-				+ Add tag
+				+ {t('settingsDialog.addTag')}
 			</button>
 		{/if}
 	</div>

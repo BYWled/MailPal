@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import DemoBanner from '$lib/components/DemoBanner.svelte';
+	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
+	import { t } from '$lib/i18n';
 
 	let { data }: { data: PageData } = $props();
 
@@ -16,18 +18,18 @@
 	function relativeTime(at: number): string {
 		const diff = Date.now() - at;
 		const mins = Math.floor(diff / 60_000);
-		if (mins < 1) return 'just now';
-		if (mins < 60) return `${mins}m ago`;
+		if (mins < 1) return t('alias.justNow');
+		if (mins < 60) return t('alias.minsAgo', { mins });
 		const hrs = Math.floor(mins / 60);
-		if (hrs < 24) return `${hrs}h ago`;
+		if (hrs < 24) return t('alias.hoursAgo', { hrs });
 		const days = Math.floor(hrs / 24);
-		if (days < 30) return `${days}d ago`;
+		if (days < 30) return t('alias.daysAgo', { days });
 		return new Date(at).toLocaleDateString();
 	}
 </script>
 
 <svelte:head>
-	<title>Activity — MailPal</title>
+	<title>{t('activity.title')} — MailPal</title>
 </svelte:head>
 
 {#if data.demo}
@@ -38,28 +40,33 @@
 	<div class="max-w-3xl mx-auto px-6 py-10 space-y-6">
 
 		<!-- Header -->
-		<div class="flex items-center gap-4">
-			<a
-				href="/"
-				class="p-1.5 rounded-lg text-app-muted hover:text-app-text hover:bg-app-hover transition-colors"
-				aria-label="Back home"
-			>
-				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-				</svg>
-			</a>
+		<div class="flex items-center justify-between">
+			<div class="flex items-center gap-4">
+				<a
+					href="/"
+					class="p-1.5 rounded-lg text-app-muted hover:text-app-text hover:bg-app-hover transition-colors"
+					aria-label={t('activity.backHome')}
+				>
+					<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+					</svg>
+				</a>
+				<div>
+					<h1 class="text-lg font-bold">{t('activity.title')}</h1>
+					<p class="text-sm text-app-muted">{t('activity.subtitle')}</p>
+				</div>
+			</div>
 			<div>
-				<h1 class="text-lg font-bold">Activity</h1>
-				<p class="text-sm text-app-muted">Recent email events across all addresses</p>
+				<LanguageSwitcher />
 			</div>
 		</div>
 
 		<!-- Summary + filter -->
 		<div class="flex items-center gap-2 flex-wrap">
 			{#each ([
-				{ value: 'all', label: 'All', count: data.entries.length },
-				{ value: 'forwarded', label: 'Forwarded', count: forwardedCount },
-				{ value: 'blocked', label: 'Blocked', count: blockedCount },
+				{ value: 'all', label: t('activity.all'), count: data.entries.length },
+				{ value: 'forwarded', label: t('activity.forwarded'), count: forwardedCount },
+				{ value: 'blocked', label: t('activity.blocked'), count: blockedCount },
 			] as const) as opt}
 				<button
 					type="button"
@@ -86,8 +93,8 @@
 				<svg class="w-10 h-10 mx-auto text-app-muted/40 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
 				</svg>
-				<p class="text-sm text-app-muted">No activity yet.</p>
-				<p class="text-xs text-app-muted/60 mt-1">Events appear here after emails are received.</p>
+				<p class="text-sm text-app-muted">{t('activity.noActivity')}</p>
+				<p class="text-xs text-app-muted/60 mt-1">{t('activity.eventsAppear')}</p>
 			</div>
 		{:else}
 			<ol class="space-y-2" aria-label="Activity log">
@@ -107,11 +114,11 @@
 									{entry.action === 'forwarded'
 										? 'bg-green-400/10 text-green-400'
 										: 'bg-red-400/10 text-red-400'}">
-									{entry.action}
+									{entry.action === 'forwarded' ? t('activity.forwarded') : t('activity.blocked')}
 								</span>
 							</div>
 							<div class="flex items-center gap-3 text-xs text-app-muted flex-wrap">
-								<span class="truncate" title={entry.from}>from {entry.from}</span>
+								<span class="truncate" title={entry.from}>{t('alias.from')} {entry.from}</span>
 								<span class="shrink-0">→</span>
 								<span class="truncate" title={entry.to}>{entry.to}</span>
 							</div>
@@ -129,9 +136,7 @@
 				{/each}
 			</ol>
 			<p class="text-center text-xs text-app-muted/50 pt-2">
-				Showing the {entries.length} most recent event{entries.length === 1 ? '' : 's'}
-				{#if filter !== 'all'}({filter}){/if}.
-				Up to 50 events are stored per alias.
+				{t('activity.showingEvents', { count: entries.length })}. {t('activity.maxEventsNote')}
 			</p>
 		{/if}
 	</div>

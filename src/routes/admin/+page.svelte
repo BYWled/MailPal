@@ -1,5 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import { t } from '$lib/i18n/index.js';
+	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -388,7 +390,7 @@
 			if (res.ok) {
 				const body = await res.json();
 				settings = body;
-				settingsSavedMsg = 'Settings saved successfully!';
+				settingsSavedMsg = t('admin.settings.savedSuccess');
 				setTimeout(() => {
 					settingsSavedMsg = '';
 				}, 2500);
@@ -400,38 +402,39 @@
 </script>
 
 <svelte:head>
-	<title>Admin Console — MailPal</title>
+	<title>{t('admin.title')} — MailPal</title>
 </svelte:head>
 
 <div class="min-h-screen bg-app-bg text-app-text flex flex-col">
 	<!-- Top Bar -->
 	<header class="border-b border-app-border bg-app-surface px-6 py-4 flex items-center justify-between">
 		<div class="flex items-center gap-3">
-			<a href="/" class="p-1.5 rounded-lg hover:bg-app-hover text-app-muted hover:text-app-text transition-colors" title="Back to Dashboard">
+			<a href="/" class="p-1.5 rounded-lg hover:bg-app-hover text-app-muted hover:text-app-text transition-colors" title={t('activity.backToDashboard')}>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
 				</svg>
 			</a>
 			<div>
 				<div class="flex items-center gap-2">
-					<h1 class="text-lg font-bold">MailPal Admin Console</h1>
+					<h1 class="text-lg font-bold">{t('admin.title')}</h1>
 					<span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-app-accent/20 text-app-accent">
-						SUPERADMIN
+						{t('admin.superadmin')}
 					</span>
 				</div>
-				<p class="text-xs text-app-muted">System management, user quotas, domains & DNS blacklist</p>
+				<p class="text-xs text-app-muted">{t('admin.subtitle')}</p>
 			</div>
 		</div>
 
 		<div class="flex items-center gap-3">
 			<span class="text-xs text-app-muted">
-				Signed in as <strong class="text-app-text">{data.currentUser?.username}</strong>
+				{t('sidebar.signedInAs')} <strong class="text-app-text">{data.currentUser?.username}</strong>
 			</span>
+			<LanguageSwitcher />
 			<a
 				href="/"
 				class="px-3 py-1.5 rounded-lg border border-app-border bg-app-surface hover:bg-app-hover text-xs font-medium transition-colors"
 			>
-				Open MailPal Dashboard →
+				{t('admin.openDashboard')}
 			</a>
 		</div>
 	</header>
@@ -439,7 +442,7 @@
 	<!-- Main Container -->
 	<div class="max-w-6xl w-full mx-auto p-6 flex-1 flex flex-col">
 		<!-- Navigation Tabs -->
-		<div class="flex items-center gap-2 border-b border-app-border mb-6">
+		<div class="flex items-center gap-2 border-b border-app-border mb-6 flex-wrap">
 			<button
 				onclick={() => (activeTab = 'users')}
 				class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-2
@@ -448,7 +451,7 @@
 				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
 				</svg>
-				User Accounts & Quotas ({users.length})
+				{t('admin.tabs.users', { count: users.length })}
 			</button>
 
 			<button
@@ -459,7 +462,7 @@
 				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
 				</svg>
-				All Domains ({domains.length})
+				{t('admin.tabs.domains', { count: domains.length })}
 			</button>
 
 			<button
@@ -470,7 +473,7 @@
 				<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
 				</svg>
-				DNS Anti-Conflict & Blacklist ({blacklist.length})
+				{t('admin.tabs.blacklist', { count: blacklist.length })}
 			</button>
 
 			<button
@@ -482,7 +485,7 @@
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
 				</svg>
-				Settings
+				{t('admin.tabs.settings')}
 			</button>
 		</div>
 
@@ -491,9 +494,9 @@
 			<div class="space-y-4">
 				<div class="flex items-center justify-between">
 					<div>
-						<h2 class="text-base font-semibold">User Accounts</h2>
+						<h2 class="text-base font-semibold">{t('admin.users.title')}</h2>
 						<p class="text-xs text-app-muted">
-							Create users, adjust alias creation quotas, and manage authentication.
+							{t('admin.users.subtitle')}
 						</p>
 					</div>
 					<button
@@ -503,7 +506,7 @@
 						<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
 						</svg>
-						Create User
+						{t('admin.users.createUser')}
 					</button>
 				</div>
 
@@ -511,12 +514,12 @@
 					<table class="w-full text-left text-sm">
 						<thead class="bg-app-hover/50 text-xs text-app-muted uppercase tracking-wider border-b border-app-border">
 							<tr>
-								<th class="px-4 py-3 font-semibold">Username</th>
-								<th class="px-4 py-3 font-semibold">Role</th>
-								<th class="px-4 py-3 font-semibold">Alias Usage / Quota</th>
-								<th class="px-4 py-3 font-semibold">2FA Status</th>
-								<th class="px-4 py-3 font-semibold">Created</th>
-								<th class="px-4 py-3 font-semibold text-right">Actions</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.users.username')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.users.role')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.users.usage')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.users.twoFactorStatus')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.users.created')}</th>
+								<th class="px-4 py-3 font-semibold text-right">{t('common.actions')}</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-app-border/50">
@@ -534,11 +537,11 @@
 									<td class="px-4 py-3.5">
 										{#if u.role === 'superadmin'}
 											<span class="px-2 py-0.5 rounded text-xs font-semibold bg-purple-500/20 text-purple-400">
-												Superadmin
+												{t('admin.superadmin')}
 											</span>
 										{:else}
 											<span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-500/20 text-slate-300">
-												User
+												USER
 											</span>
 										{/if}
 									</td>
@@ -564,14 +567,14 @@
 												<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
 												</svg>
-												Bound
+												{t('admin.users.bound')}
 											</span>
 										{:else}
 											<span class="inline-flex items-center gap-1 text-xs text-amber-400">
 												<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
 												</svg>
-												Pending 1st Login
+												{t('admin.users.pending')}
 											</span>
 										{/if}
 									</td>
@@ -586,7 +589,7 @@
 											}}
 											class="text-xs text-app-accent hover:underline"
 										>
-											Edit Quota
+											{t('admin.users.editQuota')}
 										</button>
 
 										<button
@@ -596,7 +599,7 @@
 											}}
 											class="text-xs text-app-muted hover:text-app-text"
 										>
-											Password
+											{t('admin.users.resetPassword')}
 										</button>
 
 										{#if u.username !== data.currentUser?.username}
@@ -604,7 +607,7 @@
 												onclick={() => handleDeleteUser(u.username)}
 												class="text-xs text-red-400 hover:text-red-300"
 											>
-												Delete
+												{t('common.delete')}
 											</button>
 										{/if}
 									</td>
@@ -621,10 +624,9 @@
 			<div class="space-y-4">
 				<div class="flex items-center justify-between">
 					<div>
-						<h2 class="text-base font-semibold">Cross-User Domain Management</h2>
+						<h2 class="text-base font-semibold">{t('admin.domains.title')}</h2>
 						<p class="text-xs text-app-muted">
-							As Superadmin, you can inspect, modify, and delete all users' domains.
-							Each domain is strictly capped at <strong class="text-amber-400">50 aliases</strong> max.
+							{t('admin.domains.subtitle')}
 						</p>
 					</div>
 				</div>
@@ -633,13 +635,13 @@
 					<table class="w-full text-left text-sm">
 						<thead class="bg-app-hover/50 text-xs text-app-muted uppercase tracking-wider border-b border-app-border">
 							<tr>
-								<th class="px-4 py-3 font-semibold">Domain</th>
-								<th class="px-4 py-3 font-semibold">Owner</th>
-								<th class="px-4 py-3 font-semibold">Aliases / 50 Limit</th>
-								<th class="px-4 py-3 font-semibold">Default Target</th>
-								<th class="px-4 py-3 font-semibold">Wildcard</th>
-								<th class="px-4 py-3 font-semibold">Status</th>
-								<th class="px-4 py-3 font-semibold text-right">Actions</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.domains.domain')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.domains.owner')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.domains.aliasLimit')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.domains.defaultTarget')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.domains.wildcard')}</th>
+								<th class="px-4 py-3 font-semibold">{t('common.status')}</th>
+								<th class="px-4 py-3 font-semibold text-right">{t('common.actions')}</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-app-border/50">
@@ -657,7 +659,7 @@
 												{d.ownerUsername}
 											</span>
 										{:else}
-											<span class="text-app-muted italic">System / Unassigned</span>
+											<span class="text-app-muted italic">{t('admin.domains.unassigned')}</span>
 										{/if}
 									</td>
 									<td class="px-4 py-3.5">
@@ -677,14 +679,14 @@
 										{d.targetEmail}
 									</td>
 									<td class="px-4 py-3.5 text-xs">
-										{d.wildcardEnabled ? 'Enabled' : 'Disabled'}
+										{d.wildcardEnabled ? t('common.enabled') : t('common.disabled')}
 									</td>
 									<td class="px-4 py-3.5">
 										<button
 											onclick={() => handleToggleDomain(d)}
 											class="text-xs px-2 py-0.5 rounded {d.enabled ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}"
 										>
-											{d.enabled ? 'Active' : 'Disabled'}
+											{d.enabled ? t('common.active') : t('common.disabled')}
 										</button>
 									</td>
 									<td class="px-4 py-3.5 text-right space-x-2">
@@ -692,13 +694,13 @@
 											href="/domains/{d.domain}"
 											class="text-xs text-app-accent hover:underline"
 										>
-											View Aliases
+											{t('admin.domains.viewAliases')}
 										</a>
 										<button
 											onclick={() => handleDeleteDomain(d.domain)}
 											class="text-xs text-red-400 hover:text-red-300"
 										>
-											Delete
+											{t('common.delete')}
 										</button>
 									</td>
 								</tr>
@@ -722,13 +724,13 @@
 								<svg class="w-5 h-5 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
 									<path d="M18.8 9.5a5.5 5.5 0 00-10.6-1.5A5.002 5.002 0 003 13c0 2.76 2.24 5 5 5h10.5a4.5 4.5 0 00.3-9z" />
 								</svg>
-								<h3 class="text-sm font-bold text-app-text">Cloudflare API 自动同步 DNS 黑名单</h3>
+								<h3 class="text-sm font-bold text-app-text">{t('admin.blacklist.cfTitle')}</h3>
 								<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30">
-									Recommended
+									{t('admin.blacklist.cfBadge')}
 								</span>
 							</div>
 							<p class="text-xs text-app-muted mt-1">
-								直接通过 Cloudflare API v4 读取该域名已解析的所有 DNS 子域名记录，自动提取前缀并加入防冲突黑名单。
+								{t('admin.blacklist.cfDesc')}
 							</p>
 						</div>
 					</div>
@@ -736,7 +738,7 @@
 					<div class="space-y-4">
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
-								<label for="cf-fetch-domain" class="block text-xs font-medium text-app-text mb-1">选择目标域名 *</label>
+								<label for="cf-fetch-domain" class="block text-xs font-medium text-app-text mb-1">{t('admin.blacklist.selectDomain')}</label>
 								<div class="relative">
 									{#if domains.length > 0}
 										<select
@@ -762,20 +764,20 @@
 
 							<div>
 								<label for="cf-api-token" class="block text-xs font-medium text-app-text mb-1">
-									Cloudflare API Token
+									{t('admin.blacklist.tokenLabel')}
 									{#if data.hasEnvCfToken}
-										<span class="text-[11px] text-emerald-400 font-normal">（已检测到环境变量，可留空）</span>
+										<span class="text-[11px] text-emerald-400 font-normal">{t('admin.blacklist.tokenEnvDetected')}</span>
 									{:else if settings.cfApiToken}
-										<span class="text-[11px] text-emerald-400 font-normal">（已配置全局 Token，可留空）</span>
+										<span class="text-[11px] text-emerald-400 font-normal">{t('admin.blacklist.tokenGlobalDetected')}</span>
 									{:else}
-										<span class="text-[11px] text-amber-400 font-normal">（如未在设置中配置，请在此输入）</span>
+										<span class="text-[11px] text-amber-400 font-normal">{t('admin.blacklist.tokenNeedInput')}</span>
 									{/if}
 								</label>
 								<input
 									id="cf-api-token"
 									type="password"
 									bind:value={cfApiTokenInput}
-									placeholder={data.hasEnvCfToken || settings.cfApiToken ? '使用系统配置 Token（或在此填入以临时覆盖）' : '输入 Cloudflare API Token...'}
+									placeholder={data.hasEnvCfToken || settings.cfApiToken ? t('admin.blacklist.tokenPlaceholder') : '输入 Cloudflare API Token...'}
 									class="w-full px-3 py-2 text-xs rounded-lg border border-app-border bg-app-hover text-app-text font-mono outline-none focus:border-orange-500"
 								/>
 							</div>
@@ -783,7 +785,7 @@
 
 						<div class="flex items-center justify-between">
 							<span class="text-xs text-app-muted">
-								权限要求：Zone.Zone:Read + Zone.DNS:Read
+								{t('admin.blacklist.tokenPerms')}
 							</span>
 							<button
 								type="button"
@@ -796,12 +798,12 @@
 										<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
 										<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
 									</svg>
-									正在从 Cloudflare API 拉取...
+									{t('admin.blacklist.fetching')}
 								{:else}
 									<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
 									</svg>
-									从 Cloudflare 获取 DNS 记录
+									{t('admin.blacklist.fetchBtn')}
 								{/if}
 							</button>
 						</div>
@@ -817,7 +819,7 @@
 							<div class="p-4 rounded-lg bg-app-hover/80 border border-orange-500/30 space-y-3">
 								<div class="flex items-center justify-between text-xs">
 									<div class="text-app-muted">
-										Cloudflare Zone: <strong class="text-app-text">{cfDnsResult.zoneName}</strong> ({cfDnsResult.zoneId.slice(0, 8)}...) · 共读取到 <strong class="text-app-text">{cfDnsResult.totalRecords}</strong> 条 DNS 记录，已提取出 <strong class="text-orange-400 font-bold">{cfDnsResult.extractedNames.length}</strong> 个子域名前缀：
+										{t('admin.blacklist.zoneInfo', { name: cfDnsResult.zoneName, id: cfDnsResult.zoneId.slice(0, 8), records: cfDnsResult.totalRecords, count: cfDnsResult.extractedNames.length })}
 									</div>
 									<button
 										type="button"
@@ -825,7 +827,7 @@
 										disabled={importingCfDns || cfDnsResult.extractedNames.length === 0}
 										class="px-3.5 py-1.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition-all disabled:opacity-50 shadow"
 									>
-										{importingCfDns ? '正在导入...' : `一键批量导入 ${cfDnsResult.extractedNames.length} 个规则`}
+										{importingCfDns ? t('admin.blacklist.importing') : t('admin.blacklist.importBtn', { count: cfDnsResult.extractedNames.length })}
 									</button>
 								</div>
 
@@ -836,7 +838,7 @@
 										</span>
 									{/each}
 									{#if cfDnsResult.extractedNames.length === 0}
-										<span class="text-xs text-app-muted italic p-1">该域名下仅存在根域名或无可用二级子域名前缀</span>
+										<span class="text-xs text-app-muted italic p-1">{t('admin.blacklist.noSubdomains')}</span>
 									{/if}
 								</div>
 							</div>
@@ -852,10 +854,10 @@
 								<svg class="w-4 h-4 text-app-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
 								</svg>
-								手动导入 DNS 区域文件 (BIND / Cloudflare Export Zone)
+								{t('admin.blacklist.zoneFileTitle')}
 							</h3>
 							<p class="text-xs text-app-muted mt-1">
-								Paste Cloudflare / BIND exported zone records below to automatically extract hostname and subdomain prefixes (e.g. <code>api-admin</code>, <code>pan</code>, <code>status</code>) and add them to the blacklist, preventing conflicting email aliases.
+								{t('admin.blacklist.zoneFileDesc')}
 							</p>
 						</div>
 					</div>
@@ -865,17 +867,17 @@
 							bind:value={zoneInputText}
 							rows="6"
 							class="w-full p-3 font-mono text-xs rounded-lg border border-app-border bg-app-hover text-app-text placeholder:text-app-muted/60 focus:outline-none focus:border-app-accent"
-							placeholder=";; Paste DNS zone records here, e.g.&#10;;; Domain: wled.top.&#10;api-admin.wled.top.  1  IN  A  104.46.230.35&#10;pan.wled.top.        1  IN  A  104.46.230.35&#10;status.wled.top.     1  IN  A  104.46.230.35&#10;mirror.wled.top.     1  IN  CNAME bywled.github.io."
+							placeholder={t('admin.blacklist.zonePlaceholder')}
 						></textarea>
 
 						<div class="flex flex-wrap items-center justify-between gap-3">
 							<div class="flex items-center gap-2">
-								<label for="scope-domain" class="text-xs text-app-muted">Scope domain:</label>
+								<label for="scope-domain" class="text-xs text-app-muted">{t('admin.blacklist.scopeDomain')}</label>
 								<input
 									id="scope-domain"
 									type="text"
 									bind:value={dnsImportDomain}
-									placeholder="e.g. wled.top (empty for global)"
+									placeholder={t('admin.blacklist.scopePlaceholder')}
 									class="px-2.5 py-1.5 text-xs rounded border border-app-border bg-app-hover text-app-text outline-none focus:border-app-accent"
 								/>
 							</div>
@@ -886,7 +888,7 @@
 									disabled={parsingDns || !zoneInputText.trim()}
 									class="px-3 py-1.5 rounded-lg border border-app-border bg-app-hover hover:bg-app-border text-xs font-medium transition-colors disabled:opacity-50"
 								>
-									{parsingDns ? 'Parsing...' : 'Preview Extracted Names'}
+									{parsingDns ? t('admin.blacklist.parsing') : t('admin.blacklist.previewBtn')}
 								</button>
 								{#if dnsPreview}
 									<button
@@ -894,7 +896,7 @@
 										disabled={importingDns}
 										class="px-3.5 py-1.5 rounded-lg bg-app-accent hover:brightness-110 text-app-bg text-xs font-semibold transition-all disabled:opacity-50 shadow"
 									>
-										{importingDns ? 'Importing...' : `Import ${dnsPreview.names.length} Names to Blacklist`}
+										{importingDns ? t('admin.blacklist.importing') : t('admin.blacklist.importZoneBtn', { count: dnsPreview.names.length })}
 									</button>
 								{/if}
 							</div>
@@ -910,7 +912,7 @@
 						{#if dnsPreview}
 							<div class="mt-3 p-3 rounded-lg bg-app-hover/70 border border-app-border/80">
 								<div class="text-xs text-app-muted mb-2">
-									Detected Domain: <strong class="text-app-text">{dnsPreview.domain || 'Global'}</strong> · Found <strong class="text-app-accent">{dnsPreview.names.length}</strong> unique local-parts from {dnsPreview.totalRecords} DNS records:
+									{t('admin.blacklist.zonePreviewInfo', { domain: dnsPreview.domain || t('admin.blacklist.globalScope'), names: dnsPreview.names.length, total: dnsPreview.totalRecords })}
 								</div>
 								<div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-1">
 									{#each dnsPreview.names as name}
@@ -926,37 +928,37 @@
 
 				<!-- Manual Blacklist Rule Add -->
 				<div class="bg-app-surface border border-app-border rounded-xl p-6 shadow">
-					<h3 class="text-sm font-bold mb-1">Add Blacklist Rule Manually</h3>
+					<h3 class="text-sm font-bold mb-1">{t('admin.blacklist.manualTitle')}</h3>
 					<p class="text-xs text-app-muted mb-4">
-						Prevent users from creating aliases matching specific words, system names, or patterns.
+						{t('admin.blacklist.manualDesc')}
 					</p>
 
 					<form onsubmit={handleAddManual} class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
 						<div>
-							<label for="manual-pattern" class="block text-xs font-medium text-app-text mb-1">Pattern / Local-Part *</label>
+							<label for="manual-pattern" class="block text-xs font-medium text-app-text mb-1">{t('admin.blacklist.patternLabel')}</label>
 							<input
 								id="manual-pattern"
 								bind:value={manualPattern}
 								required
-								placeholder="e.g. admin or support"
+								placeholder={t('admin.blacklist.patternPlaceholder')}
 								class="w-full px-3 py-2 text-xs rounded-lg border border-app-border bg-app-hover text-app-text outline-none focus:border-app-accent"
 							/>
 						</div>
 						<div>
-							<label for="manual-domain" class="block text-xs font-medium text-app-text mb-1">Domain (optional)</label>
+							<label for="manual-domain" class="block text-xs font-medium text-app-text mb-1">{t('admin.blacklist.domainLabel')}</label>
 							<input
 								id="manual-domain"
 								bind:value={manualDomain}
-								placeholder="Leave empty for all domains"
+								placeholder={t('admin.blacklist.domainPlaceholder')}
 								class="w-full px-3 py-2 text-xs rounded-lg border border-app-border bg-app-hover text-app-text outline-none focus:border-app-accent"
 							/>
 						</div>
 						<div>
-							<label for="manual-desc" class="block text-xs font-medium text-app-text mb-1">Description (optional)</label>
+							<label for="manual-desc" class="block text-xs font-medium text-app-text mb-1">{t('admin.blacklist.descLabel')}</label>
 							<input
 								id="manual-desc"
 								bind:value={manualDesc}
-								placeholder="Reason for blocking"
+								placeholder={t('admin.blacklist.descPlaceholder')}
 								class="w-full px-3 py-2 text-xs rounded-lg border border-app-border bg-app-hover text-app-text outline-none focus:border-app-accent"
 							/>
 						</div>
@@ -966,7 +968,7 @@
 								disabled={addingManual}
 								class="w-full py-2 px-3 rounded-lg bg-app-accent hover:brightness-110 text-app-bg text-xs font-semibold transition-all disabled:opacity-50"
 							>
-								{addingManual ? 'Adding...' : 'Add Rule'}
+								{addingManual ? t('admin.blacklist.adding') : t('admin.blacklist.addRuleBtn')}
 							</button>
 						</div>
 					</form>
@@ -980,11 +982,11 @@
 					<table class="w-full text-left text-sm">
 						<thead class="bg-app-hover/50 text-xs text-app-muted uppercase tracking-wider border-b border-app-border">
 							<tr>
-								<th class="px-4 py-3 font-semibold">Blocked Local-Part</th>
-								<th class="px-4 py-3 font-semibold">Domain Scope</th>
-								<th class="px-4 py-3 font-semibold">Source</th>
-								<th class="px-4 py-3 font-semibold">Description</th>
-								<th class="px-4 py-3 font-semibold text-right">Actions</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.blacklist.tableBlocked')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.blacklist.tableScope')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.blacklist.tableSource')}</th>
+								<th class="px-4 py-3 font-semibold">{t('admin.blacklist.tableDesc')}</th>
+								<th class="px-4 py-3 font-semibold text-right">{t('common.actions')}</th>
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-app-border/50">
@@ -994,11 +996,11 @@
 										{item.pattern}
 									</td>
 									<td class="px-4 py-2.5 text-xs text-app-muted">
-										{item.domain || 'Global (All domains)'}
+										{item.domain || t('admin.blacklist.globalScope')}
 									</td>
 									<td class="px-4 py-2.5 text-xs">
 										<span class="px-1.5 py-0.5 rounded text-[11px] {item.source === 'cloudflare_api' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30 font-medium' : item.source === 'dns_import' ? 'bg-sky-500/20 text-sky-400' : 'bg-purple-500/20 text-purple-400'}">
-											{item.source === 'cloudflare_api' ? 'Cloudflare API' : item.source === 'dns_import' ? 'Zone File' : 'Manual'}
+											{item.source === 'cloudflare_api' ? t('admin.blacklist.sourceCf') : item.source === 'dns_import' ? t('admin.blacklist.sourceZone') : t('admin.blacklist.sourceManual')}
 										</span>
 									</td>
 									<td class="px-4 py-2.5 text-xs text-app-muted truncate max-w-[200px]">
@@ -1009,7 +1011,7 @@
 											onclick={() => handleDeleteBlacklist(item.id)}
 											class="text-xs text-red-400 hover:text-red-300"
 										>
-											Delete
+											{t('common.delete')}
 										</button>
 									</td>
 								</tr>
@@ -1017,7 +1019,7 @@
 							{#if blacklist.length === 0}
 								<tr>
 									<td colspan="5" class="px-4 py-6 text-center text-xs text-app-muted italic">
-										No blacklist rules created yet.
+										{t('admin.blacklist.noRules')}
 									</td>
 								</tr>
 							{/if}
@@ -1031,14 +1033,14 @@
 		{#if activeTab === 'settings'}
 			<div class="max-w-xl bg-app-surface border border-app-border rounded-xl p-6 shadow space-y-6">
 				<div>
-					<h2 class="text-base font-semibold">System Quotas & Limits</h2>
-					<p class="text-xs text-app-muted mt-0.5">Configure system-wide limits for users and domains.</p>
+					<h2 class="text-base font-semibold">{t('admin.settings.title')}</h2>
+					<p class="text-xs text-app-muted mt-0.5">{t('admin.settings.subtitle')}</p>
 				</div>
 
 				<form onsubmit={handleSaveSettings} class="space-y-4">
 					<div>
 						<label for="default-quota" class="block text-sm font-medium text-app-text mb-1">
-							Default User Alias Quota
+							{t('admin.settings.defaultQuota')}
 						</label>
 						<input
 							id="default-quota"
@@ -1049,13 +1051,13 @@
 							class="w-full px-3 py-2 rounded-lg border border-app-border bg-app-hover text-sm text-app-text outline-none focus:border-app-accent"
 						/>
 						<p class="text-xs text-app-muted mt-1">
-							Maximum number of email aliases each normal user is allowed to create (unless individually overridden).
+							{t('admin.settings.defaultQuotaDesc')}
 						</p>
 					</div>
 
 					<div>
 						<label for="cf-token-setting" class="block text-sm font-medium text-app-text mb-1">
-							Cloudflare API Token
+							{t('admin.settings.cfToken')}
 						</label>
 						<input
 							id="cf-token-setting"
@@ -1066,18 +1068,18 @@
 						/>
 						<p class="text-xs text-app-muted mt-1">
 							{#if data.hasEnvCfToken}
-								<span class="text-emerald-400 font-medium">✓ 已检测到环境变量 CF_API_TOKEN。</span> 可留空直接使用环境变量，或在此输入以覆盖。
+								<span class="text-emerald-400 font-medium">{t('admin.settings.cfTokenEnvDetected')}</span>
 							{:else}
-								用于自动连接 Cloudflare API 读取域名的全部 DNS 记录以导入防冲突黑名单。权限：<strong class="text-app-text">Zone.Zone:Read</strong> 与 <strong class="text-app-text">Zone.DNS:Read</strong>。
+								{t('admin.settings.cfTokenDesc')}
 							{/if}
 						</p>
 					</div>
 
 					<div class="p-4 rounded-lg bg-app-hover/50 border border-app-border">
-						<div class="text-sm font-medium text-app-text">Max Aliases Per Domain</div>
+						<div class="text-sm font-medium text-app-text">{t('admin.settings.maxPerDomain')}</div>
 						<div class="text-2xl font-bold font-mono text-app-accent mt-1">50</div>
 						<p class="text-xs text-app-muted mt-1">
-							Every domain is strictly limited to at most 50 email aliases in total to prevent resource overuse.
+							{t('admin.settings.maxPerDomainDesc')}
 						</p>
 					</div>
 
@@ -1090,7 +1092,7 @@
 						disabled={savingSettings}
 						class="py-2 px-4 rounded-lg bg-app-accent hover:brightness-110 text-app-bg text-sm font-semibold transition-all disabled:opacity-50"
 					>
-						{savingSettings ? 'Saving...' : 'Save Settings'}
+						{savingSettings ? t('admin.users.savingQuota') : t('admin.settings.saveSettings')}
 					</button>
 				</form>
 			</div>
@@ -1102,14 +1104,14 @@
 {#if showCreateUserModal}
 	<div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
 		<div class="bg-app-surface border border-app-border rounded-2xl p-6 max-w-md w-full shadow-2xl">
-			<h3 class="text-base font-bold mb-1">Create New User</h3>
+			<h3 class="text-base font-bold mb-1">{t('admin.users.createTitle')}</h3>
 			<p class="text-xs text-app-muted mb-4">
-				New users will be forced to scan QR and bind 2FA upon their initial login.
+				{t('admin.users.createSubtitle')}
 			</p>
 
 			<form onsubmit={handleCreateUser} class="space-y-4">
 				<div>
-					<label for="create-username" class="block text-xs font-medium text-app-text mb-1">Username *</label>
+					<label for="create-username" class="block text-xs font-medium text-app-text mb-1">{t('admin.users.newUsername')}</label>
 					<input
 						id="create-username"
 						type="text"
@@ -1121,7 +1123,7 @@
 				</div>
 
 				<div>
-					<label for="create-password" class="block text-xs font-medium text-app-text mb-1">Initial Password * (min 8 chars)</label>
+					<label for="create-password" class="block text-xs font-medium text-app-text mb-1">{t('admin.users.initialPassword')}</label>
 					<input
 						id="create-password"
 						type="password"
@@ -1134,13 +1136,13 @@
 				</div>
 
 				<div>
-					<label for="create-max-aliases" class="block text-xs font-medium text-app-text mb-1">Allowed Alias Quota (optional)</label>
+					<label for="create-max-aliases" class="block text-xs font-medium text-app-text mb-1">{t('admin.users.aliasQuotaOptional')}</label>
 					<input
 						id="create-max-aliases"
 						type="number"
 						min="1"
 						bind:value={newMaxAliases}
-						placeholder="Leave blank for system default ({settings.defaultUserAliasQuota})"
+						placeholder={t('admin.users.aliasQuotaPlaceholder', { count: settings.defaultUserAliasQuota })}
 						class="w-full px-3 py-2 rounded-lg border border-app-border bg-app-hover text-sm text-app-text outline-none focus:border-app-accent"
 					/>
 				</div>
@@ -1155,14 +1157,14 @@
 						onclick={() => (showCreateUserModal = false)}
 						class="px-3 py-2 rounded-lg text-xs text-app-muted hover:text-app-text"
 					>
-						Cancel
+						{t('common.cancel')}
 					</button>
 					<button
 						type="submit"
 						disabled={creatingUser}
 						class="px-4 py-2 rounded-lg bg-app-accent hover:brightness-110 text-app-bg text-xs font-semibold shadow disabled:opacity-50"
 					>
-						{creatingUser ? 'Creating...' : 'Create Account'}
+						{creatingUser ? t('admin.users.creatingAccount') : t('admin.users.createAccountBtn')}
 					</button>
 				</div>
 			</form>
@@ -1174,25 +1176,25 @@
 {#if editingUser}
 	<div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
 		<div class="bg-app-surface border border-app-border rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-			<h3 class="text-base font-bold mb-1">Edit Alias Quota</h3>
+			<h3 class="text-base font-bold mb-1">{t('admin.users.editQuotaTitle')}</h3>
 			<p class="text-xs text-app-muted mb-4">
-				Adjust alias quota for <strong class="text-app-text">{editingUser.username}</strong>.
+				{t('admin.users.editQuotaSubtitle', { username: editingUser.username })}
 			</p>
 
 			<div class="space-y-4">
 				<div>
 					<label for="edit-quota-value" class="block text-xs font-medium text-app-text mb-1">
-						Max Allowed Aliases
+						{t('admin.users.customQuotaLabel')}
 					</label>
 					<input
 						id="edit-quota-value"
 						type="number"
 						min="0"
 						bind:value={editQuotaValue}
-						placeholder="Leave blank for default ({settings.defaultUserAliasQuota})"
+						placeholder={t('admin.users.aliasQuotaPlaceholder', { count: settings.defaultUserAliasQuota })}
 						class="w-full px-3 py-2 rounded-lg border border-app-border bg-app-hover text-sm text-app-text outline-none focus:border-app-accent"
 					/>
-					<p class="text-[11px] text-app-muted mt-1">Currently used: {editingUser.aliasCount} aliases</p>
+					<p class="text-[11px] text-app-muted mt-1">{t('admin.users.currentlyUsed', { count: editingUser.aliasCount })}</p>
 				</div>
 
 				<div class="flex items-center justify-end gap-2 pt-2">
@@ -1201,7 +1203,7 @@
 						onclick={() => (editingUser = null)}
 						class="px-3 py-2 rounded-lg text-xs text-app-muted hover:text-app-text"
 					>
-						Cancel
+						{t('common.cancel')}
 					</button>
 					<button
 						type="button"
@@ -1209,7 +1211,7 @@
 						disabled={savingQuota}
 						class="px-4 py-2 rounded-lg bg-app-accent hover:brightness-110 text-app-bg text-xs font-semibold shadow disabled:opacity-50"
 					>
-						{savingQuota ? 'Saving...' : 'Save Quota'}
+						{savingQuota ? t('admin.users.savingQuota') : t('admin.users.saveQuotaBtn')}
 					</button>
 				</div>
 			</div>
@@ -1221,15 +1223,15 @@
 {#if resettingUser}
 	<div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
 		<div class="bg-app-surface border border-app-border rounded-2xl p-6 max-w-sm w-full shadow-2xl">
-			<h3 class="text-base font-bold mb-1">Reset Password</h3>
+			<h3 class="text-base font-bold mb-1">{t('admin.users.resetPasswordTitle')}</h3>
 			<p class="text-xs text-app-muted mb-4">
-				Set new password for <strong class="text-app-text">{resettingUser.username}</strong>.
+				{t('admin.users.resetPasswordSubtitle', { username: resettingUser.username })}
 			</p>
 
 			<div class="space-y-4">
 				<div>
 					<label for="reset-new-password" class="block text-xs font-medium text-app-text mb-1">
-						New Password (min 8 chars)
+						{t('admin.users.newPasswordLabel')}
 					</label>
 					<input
 						id="reset-new-password"
@@ -1251,7 +1253,7 @@
 						onclick={() => (resettingUser = null)}
 						class="px-3 py-2 rounded-lg text-xs text-app-muted hover:text-app-text"
 					>
-						Cancel
+						{t('common.cancel')}
 					</button>
 					<button
 						type="button"
@@ -1259,7 +1261,7 @@
 						disabled={resettingPassword || !resetNewPassword}
 						class="px-4 py-2 rounded-lg bg-app-accent hover:brightness-110 text-app-bg text-xs font-semibold shadow disabled:opacity-50"
 					>
-						{resettingPassword ? 'Updating...' : 'Update Password'}
+						{resettingPassword ? t('admin.users.updatingPassword') : t('admin.users.updatePasswordBtn')}
 					</button>
 				</div>
 			</div>
