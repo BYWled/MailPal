@@ -1,5 +1,5 @@
 import type { KVNamespace, ForwardableEmailMessage, ExecutionContext } from '@cloudflare/workers-types';
-import type { AliasConfig, DomainConfig } from '../../src/lib/types.js';
+import type { AliasConfig, DomainConfig } from './types.js';
 
 interface Env {
 	KV: KVNamespace;

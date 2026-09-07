@@ -1,8 +1,0 @@
-name = "mailpal-email-worker"
-main = "src/index.ts"
-compatibility_date = "2025-01-01"
-compatibility_flags = ["nodejs_compat"]
-
-[[kv_namespaces]]
-binding = "KV"
-id = "3363a32f3a00406980d46ba7f3bf2827"
