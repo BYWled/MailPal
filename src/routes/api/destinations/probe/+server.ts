@@ -70,14 +70,13 @@ export const GET: RequestHandler = async ({ locals, platform }) => {
 			statuses
 		});
 	} catch (err: any) {
-		return json(
-			{
-				tokenConfigured: true,
-				error: err?.message || 'Failed to probe Cloudflare destination addresses',
-				statuses: {}
-			},
-			{ status: 500 }
-		);
+		const isAuth = Boolean(err?.isAuthError || err?.message?.includes('Authentication error'));
+		return json({
+			tokenConfigured: true,
+			authError: isAuth,
+			error: err?.message || 'Failed to probe Cloudflare destination addresses',
+			statuses: {}
+		});
 	}
 };
 
@@ -163,11 +162,13 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 			status: 'not_in_cf'
 		});
 	} catch (err: any) {
+		const isAuth = Boolean(err?.isAuthError || err?.message?.includes('Authentication error'));
 		return json(
 			{
-				error: err?.message || 'Failed to interact with Cloudflare API'
+				error: err?.message || 'Failed to interact with Cloudflare API',
+				authError: isAuth
 			},
-			{ status: 500 }
+			{ status: isAuth ? 403 : 500 }
 		);
 	}
 };

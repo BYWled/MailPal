@@ -54,6 +54,7 @@
 	let probeStatuses = $state<Record<string, ProbeInfo>>({});
 	let probing = $state(false);
 	let probeError = $state('');
+	let probeAuthError = $state(false);
 	let addingToCf = $state<Record<string, boolean>>({});
 	let cfActionMsg = $state<Record<string, { type: 'success' | 'error'; text: string }>>({});
 
@@ -61,6 +62,7 @@
 		if (probing) return;
 		probing = true;
 		probeError = '';
+		probeAuthError = false;
 		try {
 			const res = await fetch('/api/destinations/probe');
 			const data = (await res.json()) as any;
@@ -69,8 +71,13 @@
 				if (data.statuses) {
 					probeStatuses = { ...data.statuses };
 				}
+				if (data.error) {
+					probeError = data.error;
+					probeAuthError = Boolean(data.authError);
+				}
 			} else {
 				probeError = data.error || 'Failed to probe statuses';
+				probeAuthError = Boolean(data.authError);
 			}
 		} catch {
 			probeError = 'Network error while probing';
@@ -345,6 +352,25 @@
 			{/if}
 		</div>
 
+		{#if probeError}
+			<div class="p-3 rounded-lg border {probeAuthError ? 'bg-amber-500/10 border-amber-500/30 text-amber-200' : 'bg-red-500/10 border-red-500/30 text-red-300'} text-xs space-y-1.5">
+				<div class="flex items-start gap-2">
+					<svg class="w-4 h-4 shrink-0 mt-0.5 {probeAuthError ? 'text-amber-400' : 'text-red-400'}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+					</svg>
+					<div class="flex-1">
+						<div class="font-semibold text-app-text">{probeAuthError ? t('settingsDialog.probeAuthErrorTitle') : t('settingsDialog.probeErrorTitle')}</div>
+						<p class="mt-0.5 leading-relaxed opacity-90">{probeError}</p>
+						{#if probeAuthError}
+							<div class="mt-2 pt-2 border-t border-amber-500/20 text-xs text-amber-300/90 leading-relaxed">
+								<strong>{t('settingsDialog.probeAuthHowToFixTitle')}：</strong> {t('settingsDialog.probeAuthHowToFixDesc')}
+							</div>
+						{/if}
+					</div>
+				</div>
+			</div>
+		{/if}
+
 		<!-- Address list -->
 		{#if destinations.length > 0}
 			<ul class="space-y-2.5" aria-label={t('settingsDialog.destinationsTitle')}>
@@ -381,6 +407,13 @@
 											{t('settingsDialog.statusNotInCf')}
 										</span>
 									{/if}
+								{:else if probeAuthError}
+									<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30">
+										<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+										</svg>
+										{t('settingsDialog.statusAuthError')}
+									</span>
 								{:else if tokenConfigured === false}
 									<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-app-muted bg-app-border/40">
 										{t('settingsDialog.statusNoToken')}

@@ -409,8 +409,21 @@ export async function listCloudflareDestinationAddresses(
 
 		if (!res.ok) {
 			const errBody = (await res.json().catch(() => ({}))) as any;
-			const errMsg = errBody.errors?.[0]?.message || `Cloudflare API error (${res.status})`;
-			throw new Error(errMsg);
+			const firstErr = errBody.errors?.[0];
+			const isAuth =
+				res.status === 401 ||
+				res.status === 403 ||
+				firstErr?.code === 10000 ||
+				firstErr?.message?.includes('Authentication error');
+			let errMsg = firstErr?.message || `Cloudflare API error (${res.status})`;
+			if (isAuth) {
+				errMsg =
+					'Cloudflare API 鉴权失败 (Authentication error): 当前 API Token 缺少 Account 级别的「Email Routing Addresses: Read/Edit」权限。请前往 Cloudflare 控制台为 Token 补充该权限。';
+			}
+			const error = new Error(errMsg);
+			(error as any).isAuthError = isAuth;
+			(error as any).status = res.status;
+			throw error;
 		}
 
 		const body = (await res.json()) as {
@@ -456,8 +469,21 @@ export async function createCloudflareDestinationAddress(
 
 	const body = (await res.json().catch(() => ({}))) as any;
 	if (!res.ok || !body.success) {
-		const errMsg = body.errors?.[0]?.message || `Failed to add destination address to Cloudflare (${res.status})`;
-		throw new Error(errMsg);
+		const firstErr = body.errors?.[0];
+		const isAuth =
+			res.status === 401 ||
+			res.status === 403 ||
+			firstErr?.code === 10000 ||
+			firstErr?.message?.includes('Authentication error');
+		let errMsg = firstErr?.message || `Failed to add destination address to Cloudflare (${res.status})`;
+		if (isAuth) {
+			errMsg =
+				'Cloudflare API 鉴权失败 (Authentication error): 当前 API Token 缺少 Account 级别的「Email Routing Addresses: Edit」权限。请前往 Cloudflare 控制台为 Token 补充该权限。';
+		}
+		const error = new Error(errMsg);
+		(error as any).isAuthError = isAuth;
+		(error as any).status = res.status;
+		throw error;
 	}
 
 	return body.result as CloudflareDestinationAddress;
