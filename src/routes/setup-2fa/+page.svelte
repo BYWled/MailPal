@@ -6,6 +6,7 @@
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
 	let copied = $state(false);
+	let code = $state('');
 
 	function copySecret() {
 		navigator.clipboard.writeText(data.secret);
@@ -13,6 +14,16 @@
 		setTimeout(() => {
 			copied = false;
 		}, 2000);
+	}
+
+	function handleCodeInput(e: Event) {
+		const target = e.target as HTMLInputElement;
+		const cleaned = target.value
+			.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+			.replace(/\D/g, '')
+			.slice(0, 6);
+		code = cleaned;
+		target.value = cleaned;
 	}
 </script>
 
@@ -90,11 +101,12 @@
 						name="code"
 						type="text"
 						inputmode="numeric"
-						pattern="[0-9]{6}"
-						maxlength="6"
+						maxlength="10"
 						required
 						autocomplete="one-time-code"
 						autofocus
+						bind:value={code}
+						oninput={handleCodeInput}
 						class="w-full text-center text-2xl font-mono tracking-widest px-4 py-3 rounded-xl border border-app-border bg-app-hover text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent transition-colors"
 						placeholder="000000"
 					/>

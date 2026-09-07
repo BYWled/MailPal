@@ -50,15 +50,19 @@ export const actions: Actions = {
 		}
 
 		const data = await request.formData();
-		const code = (data.get('code') as string)?.trim();
+		const rawCode = (data.get('code') as string) || '';
+		const code = rawCode
+			.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+			.replace(/\D/g, '')
+			.trim();
 
-		if (!code || !/^\d{6}$/.test(code)) {
-			return fail(400, { error: 'Please enter a 6-digit numeric verification code' });
+		if (!code || code.length !== 6) {
+			return fail(400, { error: 'Please enter a 6-digit numeric verification code / 请输入 6 位纯数字验证码' });
 		}
 
 		const isValid = await verifyTotp(code, user.twoFactorSecret);
 		if (!isValid) {
-			return fail(400, { error: 'Invalid verification code. Ensure your device time is synchronized.' });
+			return fail(400, { error: 'Invalid verification code. Ensure your device time is synchronized. / 动态验证码错误，请确保您的设备时间已自动同步。' });
 		}
 
 		// Activate 2FA

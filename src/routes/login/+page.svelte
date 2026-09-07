@@ -112,12 +112,20 @@
 							name="totpCode"
 							type="text"
 							inputmode="numeric"
-							pattern="[0-9]{6}"
-							maxlength="6"
+							maxlength="10"
 							required
 							autocomplete="one-time-code"
 							autofocus
 							bind:value={totpInput}
+							oninput={(e) => {
+								const target = e.target as HTMLInputElement;
+								const cleaned = target.value
+									.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+									.replace(/\D/g, '')
+									.slice(0, 6);
+								totpInput = cleaned;
+								target.value = cleaned;
+							}}
 							class="w-full text-center text-xl font-mono tracking-widest px-3 py-2.5 rounded-lg border border-app-border bg-app-hover text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent transition-colors"
 							placeholder="000000"
 						/>

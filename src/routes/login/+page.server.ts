@@ -28,7 +28,11 @@ export const actions: Actions = {
 		const data = await request.formData();
 		const username = (data.get('username') as string)?.trim().toLowerCase();
 		const password = data.get('password') as string;
-		const totpCode = (data.get('totpCode') as string)?.trim();
+		const rawTotpCode = (data.get('totpCode') as string) || '';
+		const totpCode = rawTotpCode
+			.replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+			.replace(/\D/g, '')
+			.trim();
 
 		if (!username || !password) {
 			return fail(400, { error: 'Username and password are required' });
