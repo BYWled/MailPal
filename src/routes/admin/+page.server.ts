@@ -8,17 +8,40 @@ import {
 	getSystemSettings,
 	countUserAliases
 } from '$lib/kv.js';
+import { syncCloudflareDomainsAndDns } from '$lib/cloudflare.js';
 
 export const load: PageServerLoad = async ({ locals, platform }) => {
 	if (locals.user?.role !== 'superadmin') {
 		throw error(403, 'Forbidden: Superadmin role required');
 	}
 
-	const [rawUsers, domains, blacklist, settings] = await Promise.all([
+	let settings = await getSystemSettings(locals.kv);
+	const cfToken =
+		platform?.env?.CF_API_TOKEN ||
+		platform?.env?.CLOUDFLARE_API_TOKEN ||
+		settings.cfApiToken;
+
+	const intervalHours = settings.autoSyncIntervalHours ?? 6;
+	const intervalMs = intervalHours * 60 * 60 * 1000;
+	const lastSync = settings.lastSyncStatus?.lastSyncTime ?? 0;
+	const isDue =
+		settings.autoSyncEnabled !== false &&
+		Boolean(cfToken) &&
+		Date.now() - lastSync > intervalMs;
+
+	if (isDue && cfToken) {
+		try {
+			await syncCloudflareDomainsAndDns(locals.kv, cfToken.trim(), locals.user.username);
+			settings = await getSystemSettings(locals.kv);
+		} catch (e) {
+			console.error('Periodic domain & DNS auto-sync failed on page load:', e);
+		}
+	}
+
+	const [rawUsers, domains, blacklist] = await Promise.all([
 		listUsers(locals.kv),
 		listDomains(locals.kv),
-		listBlacklist(locals.kv),
-		getSystemSettings(locals.kv)
+		listBlacklist(locals.kv)
 	]);
 
 	// Enrich users
@@ -59,6 +82,7 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 		blacklist,
 		settings,
 		hasEnvCfToken: Boolean(platform?.env?.CF_API_TOKEN || platform?.env?.CLOUDFLARE_API_TOKEN),
+		hasConfiguredToken: Boolean(cfToken),
 		currentUser: locals.user
 	};
 };

@@ -53,10 +53,22 @@ export interface User {
 	twoFactorEnabled: boolean;
 }
 
+export interface SyncStatus {
+	lastSyncTime: number;
+	lastSyncResult: 'success' | 'error';
+	lastSyncMessage: string;
+	syncedZonesCount: number;
+	newDomainsAddedCount: number;
+	syncedDnsRulesCount: number;
+}
+
 export interface SystemSettings {
 	defaultUserAliasQuota: number; // default per-user alias quota (default: 20)
 	maxAliasesPerDomain: number; // max aliases per domain (default: 50)
 	cfApiToken?: string; // Cloudflare API token for fetching DNS records
+	autoSyncEnabled?: boolean; // periodic auto-sync enabled
+	autoSyncIntervalHours?: number; // interval in hours (1, 6, 12, 24; default: 6)
+	lastSyncStatus?: SyncStatus;
 }
 
 export interface BlacklistEntry {

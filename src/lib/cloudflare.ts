@@ -175,3 +175,158 @@ export async function fetchAndExtractDnsRecords(
 		totalRecords: records.length
 	};
 }
+
+/**
+ * Lists all active Zones associated with the Cloudflare API token.
+ */
+export async function listAllZones(token: string): Promise<CloudflareZoneInfo[]> {
+	let page = 1;
+	const perPage = 50;
+	let allZones: CloudflareZoneInfo[] = [];
+	let hasMore = true;
+
+	while (hasMore) {
+		const url = `${CF_API_BASE}/zones?status=active&per_page=${perPage}&page=${page}`;
+		const res = await fetch(url, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+				'Content-Type': 'application/json'
+			}
+		});
+
+		if (!res.ok) {
+			const errBody = (await res.json().catch(() => ({}))) as any;
+			const errMsg = errBody.errors?.[0]?.message || `Cloudflare API error (${res.status})`;
+			throw new Error(errMsg);
+		}
+
+		const data = (await res.json()) as {
+			success: boolean;
+			result: CloudflareZoneInfo[];
+			result_info?: { page: number; total_pages: number; count: number };
+		};
+
+		if (!data.success) {
+			throw new Error('Failed to retrieve zones from Cloudflare API');
+		}
+
+		allZones = allZones.concat(data.result);
+
+		if (data.result_info && page < data.result_info.total_pages) {
+			page++;
+		} else {
+			hasMore = false;
+		}
+	}
+
+	return allZones;
+}
+
+/**
+ * Fully synchronizes all domains and DNS records from Cloudflare:
+ * 1. Discovers all active zones in Cloudflare account;
+ * 2. Registers any missing domains in MailPal;
+ * 3. Fetches DNS records for each zone and upserts anti-conflict blacklist rules;
+ * 4. Records sync status and statistics in KV system settings.
+ */
+export async function syncCloudflareDomainsAndDns(
+	kv: import('@cloudflare/workers-types').KVNamespace,
+	token: string,
+	ownerUsername?: string
+): Promise<import('./types.js').SyncStatus> {
+	const { listDomains, putDomain, putBlacklist, getSystemSettings, putSystemSettings } = await import(
+		'./kv.js'
+	);
+
+	try {
+		const zones = await listAllZones(token);
+		const existingDomains = await listDomains(kv);
+		const existingDomainMap = new Map<string, import('./types.js').DomainConfig>();
+		for (const d of existingDomains) {
+			existingDomainMap.set(d.domain.toLowerCase(), d);
+		}
+
+		let newDomainsAddedCount = 0;
+		let syncedDnsRulesCount = 0;
+
+		for (const zone of zones) {
+			const domainName = zone.name.toLowerCase().trim().replace(/\.+$/, '');
+			if (!domainName) continue;
+
+			// 1. If domain does not exist in MailPal, register it
+			if (!existingDomainMap.has(domainName)) {
+				const fallbackEmail = ownerUsername
+					? `${ownerUsername}@${domainName}`
+					: `admin@${domainName}`;
+				const newDomain: import('./types.js').DomainConfig = {
+					domain: domainName,
+					targetEmail: fallbackEmail,
+					wildcardEnabled: false,
+					enabled: true,
+					createdAt: Date.now(),
+					ownerUsername: ownerUsername || 'admin'
+				};
+				await putDomain(kv, newDomain);
+				existingDomainMap.set(domainName, newDomain);
+				newDomainsAddedCount++;
+			}
+
+			// 2. Fetch all DNS records for this zone and extract subdomains
+			const records = await fetchAllDnsRecords(token, zone.id);
+			const names = extractHostnamesFromDns(domainName, records);
+
+			// 3. Upsert into blacklist
+			const now = Date.now();
+			for (const name of names) {
+				const entry: import('./types.js').BlacklistEntry = {
+					id: `${domainName}:${name}`,
+					pattern: name,
+					domain: domainName,
+					source: 'cloudflare_api',
+					description: `Auto-synced from Cloudflare DNS records for ${domainName}`,
+					createdAt: now
+				};
+				await putBlacklist(kv, entry);
+				syncedDnsRulesCount++;
+			}
+		}
+
+		const status: import('./types.js').SyncStatus = {
+			lastSyncTime: Date.now(),
+			lastSyncResult: 'success',
+			lastSyncMessage: `Synced ${zones.length} domain(s), added ${newDomainsAddedCount} new domain(s), and updated ${syncedDnsRulesCount} DNS anti-conflict rule(s).`,
+			syncedZonesCount: zones.length,
+			newDomainsAddedCount,
+			syncedDnsRulesCount
+		};
+
+		const settings = await getSystemSettings(kv);
+		await putSystemSettings(kv, {
+			...settings,
+			lastSyncStatus: status
+		});
+
+		return status;
+	} catch (err: any) {
+		const errorStatus: import('./types.js').SyncStatus = {
+			lastSyncTime: Date.now(),
+			lastSyncResult: 'error',
+			lastSyncMessage: err?.message || 'Failed to sync with Cloudflare API',
+			syncedZonesCount: 0,
+			newDomainsAddedCount: 0,
+			syncedDnsRulesCount: 0
+		};
+
+		try {
+			const settings = await getSystemSettings(kv);
+			await putSystemSettings(kv, {
+				...settings,
+				lastSyncStatus: errorStatus
+			});
+		} catch {
+			// ignore secondary kv error
+		}
+
+		throw err;
+	}
+}

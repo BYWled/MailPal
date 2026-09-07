@@ -362,6 +362,27 @@ export default {
 			maxPerDomainDesc: '每个域名总别名数被严格限制在 50 个以内，以防止系统资源滥用。',
 			saveSettings: '保存系统设置',
 			savedSuccess: '设置已成功保存！'
+		},
+		sync: {
+			title: 'Cloudflare 域名与 DNS 定时自动同步',
+			subtitle: '自动从 Cloudflare 账号拉取全部活跃域名并同步所有 DNS 解析记录至防冲突黑名单。',
+			syncAllBtn: '立即同步所有域名与 DNS 规则',
+			syncing: '正在同步域名与 DNS 规则...',
+			lastSync: '最近同步时间：',
+			neverSynced: '从未同步',
+			statusSuccess: '同步成功',
+			statusError: '同步失败',
+			autoSyncLabel: '开启定时自动同步',
+			autoSyncDesc: '系统将在管理员访问系统时自动检测并在到期后静默同步 Cloudflare 域名与 DNS 记录。',
+			intervalLabel: '同步执行周期',
+			interval1h: '每 1 小时',
+			interval6h: '每 6 小时（推荐）',
+			interval12h: '每 12 小时',
+			interval24h: '每 24 小时',
+			statZones: '托管域名：{count} 个',
+			statNewDomains: '自动新增：{count} 个',
+			statDnsRules: '已同步 DNS 规则：{count} 条',
+			tokenNotConfigured: '请先在系统设置中配置 Cloudflare API Token 或设置环境变量 CF_API_TOKEN。'
 		}
 	},
 	activity: {

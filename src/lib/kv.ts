@@ -186,19 +186,27 @@ export async function getSystemSettings(kv: KVNamespace): Promise<SystemSettings
 	if (!val) {
 		return {
 			defaultUserAliasQuota: DEFAULT_USER_ALIAS_QUOTA,
-			maxAliasesPerDomain: MAX_ALIASES_PER_DOMAIN
+			maxAliasesPerDomain: MAX_ALIASES_PER_DOMAIN,
+			autoSyncEnabled: true,
+			autoSyncIntervalHours: 6
 		};
 	}
 	try {
 		const parsed = JSON.parse(val) as Partial<SystemSettings>;
 		return {
 			defaultUserAliasQuota: parsed.defaultUserAliasQuota ?? DEFAULT_USER_ALIAS_QUOTA,
-			maxAliasesPerDomain: parsed.maxAliasesPerDomain ?? MAX_ALIASES_PER_DOMAIN
+			maxAliasesPerDomain: parsed.maxAliasesPerDomain ?? MAX_ALIASES_PER_DOMAIN,
+			cfApiToken: parsed.cfApiToken,
+			autoSyncEnabled: parsed.autoSyncEnabled ?? true,
+			autoSyncIntervalHours: parsed.autoSyncIntervalHours ?? 6,
+			lastSyncStatus: parsed.lastSyncStatus
 		};
 	} catch {
 		return {
 			defaultUserAliasQuota: DEFAULT_USER_ALIAS_QUOTA,
-			maxAliasesPerDomain: MAX_ALIASES_PER_DOMAIN
+			maxAliasesPerDomain: MAX_ALIASES_PER_DOMAIN,
+			autoSyncEnabled: true,
+			autoSyncIntervalHours: 6
 		};
 	}
 }

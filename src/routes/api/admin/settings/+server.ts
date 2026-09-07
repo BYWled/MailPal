@@ -25,7 +25,13 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 
 	const current = await getSystemSettings(locals.kv);
 	const body = await request.json().catch(() => ({}));
-	const { defaultUserAliasQuota, maxAliasesPerDomain, cfApiToken } = body as Partial<SystemSettings>;
+	const {
+		defaultUserAliasQuota,
+		maxAliasesPerDomain,
+		cfApiToken,
+		autoSyncEnabled,
+		autoSyncIntervalHours
+	} = body as Partial<SystemSettings>;
 
 	const updated: SystemSettings = {
 		defaultUserAliasQuota:
@@ -36,7 +42,13 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 			maxAliasesPerDomain != null && !isNaN(Number(maxAliasesPerDomain))
 				? Math.min(50, Math.max(1, Number(maxAliasesPerDomain)))
 				: 50, // strictly capped at 50
-		cfApiToken: cfApiToken !== undefined ? (cfApiToken?.trim() || undefined) : current.cfApiToken
+		cfApiToken: cfApiToken !== undefined ? (cfApiToken?.trim() || undefined) : current.cfApiToken,
+		autoSyncEnabled: autoSyncEnabled !== undefined ? Boolean(autoSyncEnabled) : (current.autoSyncEnabled ?? true),
+		autoSyncIntervalHours:
+			autoSyncIntervalHours != null && !isNaN(Number(autoSyncIntervalHours))
+				? Math.max(1, Number(autoSyncIntervalHours))
+				: (current.autoSyncIntervalHours ?? 6),
+		lastSyncStatus: current.lastSyncStatus
 	};
 
 	await putSystemSettings(locals.kv, updated);

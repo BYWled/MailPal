@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ActionData } from './$types';
+	import { enhance } from '$app/forms';
 	import { t } from '$lib/i18n/index.js';
 	import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
 
@@ -47,7 +48,7 @@
 				<p class="text-sm text-app-muted mt-1">Email alias manager</p>
 			</div>
 
-			<form method="POST" class="space-y-4">
+			<form method="POST" use:enhance class="space-y-4">
 				{#if !show2FaStep}
 					<!-- Step 1: Username & Password -->
 					<div>
@@ -94,8 +95,7 @@
 					</button>
 				{:else}
 					<!-- Step 2: 2FA Verification Code -->
-					<input type="hidden" name="username" value={effectiveUsername} />
-					<input type="hidden" name="password" value={passwordInput} />
+					<input type="hidden" name="token" value={form?.token ?? ''} />
 
 					<div class="text-center mb-2">
 						<div class="text-xs text-app-muted">{t('auth.signingInAs')}</div>
@@ -143,12 +143,19 @@
 					</button>
 
 					<div class="text-center pt-2">
-						<a
-							href="/login"
+						<button
+							type="button"
+							onclick={() => {
+								if (form) {
+									form.requires2Fa = false;
+									form.token = undefined;
+									form.error = undefined;
+								}
+							}}
 							class="text-xs text-app-muted hover:text-app-text transition-colors"
 						>
 							← {t('common.back')}
-						</a>
+						</button>
 					</div>
 				{/if}
 			</form>

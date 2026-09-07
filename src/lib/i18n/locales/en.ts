@@ -362,6 +362,27 @@ export default {
 			maxPerDomainDesc: 'Every domain is strictly limited to at most 50 email aliases in total to prevent resource overuse.',
 			saveSettings: 'Save Settings',
 			savedSuccess: 'Settings saved successfully!'
+		},
+		sync: {
+			title: 'Cloudflare Domains & DNS Periodic Auto-Sync',
+			subtitle: 'Automatically discovers all active domains in your Cloudflare account and syncs their DNS records into the anti-conflict blacklist.',
+			syncAllBtn: 'Sync All Domains & DNS Rules Now',
+			syncing: 'Syncing domains & DNS rules...',
+			lastSync: 'Last synced: ',
+			neverSynced: 'Never synced',
+			statusSuccess: 'Sync Succeeded',
+			statusError: 'Sync Failed',
+			autoSyncLabel: 'Enable Periodic Auto-Sync',
+			autoSyncDesc: 'System automatically checks and syncs Cloudflare domains and DNS records when the schedule is due.',
+			intervalLabel: 'Sync Interval',
+			interval1h: 'Every 1 hour',
+			interval6h: 'Every 6 hours (Recommended)',
+			interval12h: 'Every 12 hours',
+			interval24h: 'Every 24 hours',
+			statZones: 'Domains: {count}',
+			statNewDomains: 'Newly added: {count}',
+			statDnsRules: 'DNS Rules: {count}',
+			tokenNotConfigured: 'Please configure Cloudflare API Token in Settings or set CF_API_TOKEN environment secret first.'
 		}
 	},
 	activity: {

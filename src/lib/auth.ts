@@ -52,3 +52,45 @@ export async function verifySession(sealed: string | undefined, secret?: string)
 	const session = await readSession(sealed, secret);
 	return session !== null && session.authenticated === true && !session.twoFactorPending;
 }
+
+export interface TwoFactorLoginToken {
+	username: string;
+	purpose: '2fa_login';
+	createdAt: number;
+}
+
+const TWO_FACTOR_TOKEN_TTL = 300; // 5 minutes
+
+/**
+ * Creates a sealed, tamper-proof temporary token for the 2FA step of login.
+ */
+export async function createTwoFactorLoginToken(username: string, secret?: string): Promise<string> {
+	const payload: TwoFactorLoginToken = {
+		username: username.toLowerCase().trim(),
+		purpose: '2fa_login',
+		createdAt: Date.now()
+	};
+	return sealData(payload, { password: getSessionSecret(secret), ttl: TWO_FACTOR_TOKEN_TTL });
+}
+
+/**
+ * Reads and verifies a temporary 2FA login token, returning the username if valid.
+ */
+export async function verifyTwoFactorLoginToken(
+	token: string | undefined,
+	secret?: string
+): Promise<string | null> {
+	if (!token) return null;
+	try {
+		const payload = await unsealData<TwoFactorLoginToken>(token, {
+			password: getSessionSecret(secret),
+			ttl: TWO_FACTOR_TOKEN_TTL
+		});
+		if (payload && payload.purpose === '2fa_login' && payload.username) {
+			return payload.username;
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}

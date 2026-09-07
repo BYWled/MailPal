@@ -61,8 +61,15 @@
 	// Settings state
 	let defaultQuotaInput = $state(data.settings.defaultUserAliasQuota);
 	let cfTokenSettingInput = $state(data.settings.cfApiToken ?? '');
+	let autoSyncEnabledInput = $state(data.settings.autoSyncEnabled ?? true);
+	let autoSyncIntervalInput = $state(data.settings.autoSyncIntervalHours ?? 6);
 	let savingSettings = $state(false);
 	let settingsSavedMsg = $state('');
+
+	// Full Cloudflare sync state
+	let syncingAll = $state(false);
+	let syncAllMsg = $state('');
+	let syncAllError = $state('');
 
 	// ── Users Actions ────────────────────────────────────────────────────────
 	async function handleCreateUser(e: Event) {
@@ -372,6 +379,53 @@
 		}
 	}
 
+	// ── Full Cloudflare Domains & DNS Sync ────────────────────────────────────
+	async function handleSyncAllDomainsAndDns() {
+		syncingAll = true;
+		syncAllMsg = '';
+		syncAllError = '';
+		try {
+			const res = await fetch('/api/admin/sync', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					apiToken: cfTokenSettingInput.trim() || undefined
+				})
+			});
+			const body = await res.json();
+			if (!res.ok) {
+				syncAllError = body.error ?? t('admin.sync.statusError');
+			} else {
+				syncAllMsg = body.status?.lastSyncMessage ?? t('admin.sync.statusSuccess');
+				settings = {
+					...settings,
+					lastSyncStatus: body.status
+				};
+				if (body.domains) {
+					domains = body.domains.map((d: any) => {
+						const old = domains.find((item) => item.domain === d.domain);
+						return {
+							...d,
+							aliasCount: old?.aliasCount ?? 0,
+							maxAliases: 50
+						};
+					});
+				}
+				const freshBlacklist = await fetch('/api/admin/blacklist');
+				if (freshBlacklist.ok) {
+					blacklist = await freshBlacklist.json();
+				}
+				setTimeout(() => {
+					syncAllMsg = '';
+				}, 6000);
+			}
+		} catch {
+			syncAllError = 'Network error while connecting to Cloudflare sync API';
+		} finally {
+			syncingAll = false;
+		}
+	}
+
 	// ── Settings Save ────────────────────────────────────────────────────────
 	async function handleSaveSettings(e: Event) {
 		e.preventDefault();
@@ -384,7 +438,9 @@
 				body: JSON.stringify({
 					defaultUserAliasQuota: Number(defaultQuotaInput),
 					maxAliasesPerDomain: 50,
-					cfApiToken: cfTokenSettingInput.trim() || null
+					cfApiToken: cfTokenSettingInput.trim() || null,
+					autoSyncEnabled: autoSyncEnabledInput,
+					autoSyncIntervalHours: Number(autoSyncIntervalInput)
 				})
 			});
 			if (res.ok) {
@@ -631,6 +687,53 @@
 					</div>
 				</div>
 
+				<!-- Cloudflare Domains & DNS Auto-Sync Card -->
+				<div class="bg-app-surface border border-orange-500/30 rounded-xl p-4 shadow flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+					<div class="space-y-1">
+						<div class="flex items-center gap-2">
+							<svg class="w-4 h-4 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
+								<path d="M18.8 9.5a5.5 5.5 0 00-10.6-1.5A5.002 5.002 0 003 13c0 2.76 2.24 5 5 5h10.5a4.5 4.5 0 00.3-9z" />
+							</svg>
+							<span class="text-xs font-bold text-app-text">{t('admin.sync.title')}</span>
+							{#if settings.lastSyncStatus}
+								<span class="px-2 py-0.5 rounded text-[10px] font-semibold {settings.lastSyncStatus.lastSyncResult === 'success' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}">
+									{settings.lastSyncStatus.lastSyncResult === 'success' ? t('admin.sync.statusSuccess') : t('admin.sync.statusError')}
+								</span>
+							{/if}
+						</div>
+						<div class="text-xs text-app-muted">
+							<span>{t('admin.sync.lastSync')}</span>
+							<span class="font-mono text-app-text">
+								{settings.lastSyncStatus?.lastSyncTime ? new Date(settings.lastSyncStatus.lastSyncTime).toLocaleString() : t('admin.sync.neverSynced')}
+							</span>
+							{#if settings.lastSyncStatus?.lastSyncResult === 'success'}
+								<span class="mx-1.5 text-app-border">·</span>
+								<span class="text-emerald-400">
+									{t('admin.sync.statZones', { count: settings.lastSyncStatus.syncedZonesCount })} · {t('admin.sync.statNewDomains', { count: settings.lastSyncStatus.newDomainsAddedCount })} · {t('admin.sync.statDnsRules', { count: settings.lastSyncStatus.syncedDnsRulesCount })}
+								</span>
+							{/if}
+						</div>
+						{#if syncAllMsg}
+							<p class="text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded">{syncAllMsg}</p>
+						{/if}
+						{#if syncAllError}
+							<p class="text-xs text-red-400 bg-red-500/10 px-2.5 py-1 rounded">{syncAllError}</p>
+						{/if}
+					</div>
+
+					<button
+						type="button"
+						onclick={handleSyncAllDomainsAndDns}
+						disabled={syncingAll}
+						class="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/40 text-orange-300 text-xs font-semibold transition-all disabled:opacity-50"
+					>
+						<svg class="w-3.5 h-3.5 {syncingAll ? 'animate-spin' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+						</svg>
+						{syncingAll ? t('admin.sync.syncing') : t('admin.sync.syncAllBtn')}
+					</button>
+				</div>
+
 				<div class="bg-app-surface border border-app-border rounded-xl overflow-hidden shadow">
 					<table class="w-full text-left text-sm">
 						<thead class="bg-app-hover/50 text-xs text-app-muted uppercase tracking-wider border-b border-app-border">
@@ -718,7 +821,7 @@
 				<div class="bg-app-surface border border-orange-500/30 rounded-xl p-6 shadow relative overflow-hidden">
 					<div class="absolute -top-10 -right-10 w-40 h-40 bg-orange-500/5 rounded-full blur-2xl pointer-events-none"></div>
 
-					<div class="flex items-start justify-between mb-4">
+					<div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
 						<div>
 							<div class="flex items-center gap-2">
 								<svg class="w-5 h-5 text-orange-400" viewBox="0 0 24 24" fill="currentColor">
@@ -733,7 +836,30 @@
 								{t('admin.blacklist.cfDesc')}
 							</p>
 						</div>
+
+						<button
+							type="button"
+							onclick={handleSyncAllDomainsAndDns}
+							disabled={syncingAll}
+							class="shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/40 text-orange-300 text-xs font-semibold transition-all disabled:opacity-50"
+						>
+							<svg class="w-3.5 h-3.5 {syncingAll ? 'animate-spin' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+							</svg>
+							{syncingAll ? t('admin.sync.syncing') : t('admin.sync.syncAllBtn')}
+						</button>
 					</div>
+
+					{#if syncAllMsg}
+						<div class="mb-3 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-lg border border-emerald-500/20">
+							{syncAllMsg}
+						</div>
+					{/if}
+					{#if syncAllError}
+						<div class="mb-3 text-xs text-red-400 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20">
+							{syncAllError}
+						</div>
+					{/if}
 
 					<div class="space-y-4">
 						<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1073,6 +1199,70 @@
 								{t('admin.settings.cfTokenDesc')}
 							{/if}
 						</p>
+					</div>
+
+					<!-- Cloudflare Auto-Sync Settings -->
+					<div class="p-4 rounded-lg bg-app-hover/30 border border-app-border space-y-3">
+						<div class="flex items-center justify-between">
+							<div>
+								<div class="text-sm font-medium text-app-text">{t('admin.sync.autoSyncLabel')}</div>
+								<p class="text-xs text-app-muted mt-0.5">{t('admin.sync.autoSyncDesc')}</p>
+							</div>
+							<label class="relative inline-flex items-center cursor-pointer">
+								<input
+									type="checkbox"
+									bind:checked={autoSyncEnabledInput}
+									class="sr-only peer"
+								/>
+								<div class="w-9 h-5 bg-app-border peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-app-accent"></div>
+							</label>
+						</div>
+
+						{#if autoSyncEnabledInput}
+							<div>
+								<label for="auto-sync-interval" class="block text-xs font-medium text-app-text mb-1">
+									{t('admin.sync.intervalLabel')}
+								</label>
+								<select
+									id="auto-sync-interval"
+									bind:value={autoSyncIntervalInput}
+									class="w-full px-3 py-2 text-xs rounded-lg border border-app-border bg-app-hover text-app-text outline-none focus:border-app-accent"
+								>
+									<option value={1}>{t('admin.sync.interval1h')}</option>
+									<option value={6}>{t('admin.sync.interval6h')}</option>
+									<option value={12}>{t('admin.sync.interval12h')}</option>
+									<option value={24}>{t('admin.sync.interval24h')}</option>
+								</select>
+							</div>
+						{/if}
+
+						<div class="pt-2 border-t border-app-border/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+							<div class="text-xs text-app-muted">
+								<span>{t('admin.sync.lastSync')}</span>
+								<span class="font-mono text-app-text">
+									{settings.lastSyncStatus?.lastSyncTime ? new Date(settings.lastSyncStatus.lastSyncTime).toLocaleString() : t('admin.sync.neverSynced')}
+								</span>
+							</div>
+
+							<button
+								type="button"
+								onclick={handleSyncAllDomainsAndDns}
+								disabled={syncingAll}
+								class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 border border-orange-500/40 text-orange-300 text-xs font-semibold transition-all disabled:opacity-50"
+							>
+								<svg class="w-3.5 h-3.5 {syncingAll ? 'animate-spin' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+								</svg>
+								{syncingAll ? t('admin.sync.syncing') : t('admin.sync.syncAllBtn')}
+							</button>
+						</div>
+
+						{#if syncAllMsg}
+							<p class="text-xs text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded">{syncAllMsg}</p>
+						{/if}
+						{#if syncAllError}
+							<p class="text-xs text-red-400 bg-red-500/10 px-2.5 py-1 rounded">{syncAllError}</p>
+						{/if}
 					</div>
 
 					<div class="p-4 rounded-lg bg-app-hover/50 border border-app-border">
