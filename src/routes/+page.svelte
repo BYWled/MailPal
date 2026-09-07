@@ -129,11 +129,16 @@
 	}
 
 	let userAliasCount = $state(data.userAliasCount ?? 0);
+	let userDomainCounts = $state<Record<string, number>>(data.userDomainCounts ?? {});
 
 	// ─── Alias mutations ──────────────────────────────────────────────────────
 	function addAlias(alias: AliasConfig) {
 		aliases = [alias, ...aliases];
 		userAliasCount++;
+		userDomainCounts = {
+			...userDomainCounts,
+			[alias.domain]: (userDomainCounts[alias.domain] ?? 0) + 1
+		};
 	}
 
 	function updateAlias(updated: AliasConfig) {
@@ -145,6 +150,12 @@
 	function removeAlias(alias: AliasConfig) {
 		aliases = aliases.filter((a) => !(a.domain === alias.domain && a.localPart === alias.localPart));
 		if (userAliasCount > 0) userAliasCount--;
+		if ((userDomainCounts[alias.domain] ?? 0) > 0) {
+			userDomainCounts = {
+				...userDomainCounts,
+				[alias.domain]: userDomainCounts[alias.domain] - 1
+			};
+		}
 	}
 
 	async function toggleAlias(alias: AliasConfig): Promise<void> {
@@ -195,11 +206,13 @@
 
 	const selectionMode = $derived(selectedKeys.size > 0 || forceSelectionMode);
 	const selectedAliases = $derived(visibleAliases.filter((a) => selectedKeys.has(aliasKey(a))));
+	const selectableVisibleAliases = $derived(visibleAliases.filter((a) => !a.isOtherUser));
 	const allVisibleSelected = $derived(
-		visibleAliases.length > 0 && visibleAliases.every((a) => selectedKeys.has(aliasKey(a)))
+		selectableVisibleAliases.length > 0 && selectableVisibleAliases.every((a) => selectedKeys.has(aliasKey(a)))
 	);
 
 	function toggleSelect(a: AliasConfig, v: boolean) {
+		if (a.isOtherUser) return;
 		const key = aliasKey(a);
 		const next = new Set(selectedKeys);
 		if (v) next.add(key); else next.delete(key);
@@ -210,7 +223,7 @@
 		if (allVisibleSelected) {
 			selectedKeys = new Set();
 		} else {
-			selectedKeys = new Set(visibleAliases.map(aliasKey));
+			selectedKeys = new Set(selectableVisibleAliases.map(aliasKey));
 		}
 	}
 
@@ -283,6 +296,7 @@
 			case 's':
 				if (focusedIdx >= 0 && focusedIdx < visibleAliases.length) {
 					const a = visibleAliases[focusedIdx];
+					if (a.isOtherUser) break;
 					const key = aliasKey(a);
 
 					// if already expanded, collapse; otherwise expand
@@ -296,13 +310,15 @@
 			case 'x':
 				if (focusedIdx >= 0 && focusedIdx < visibleAliases.length) {
 					const a = visibleAliases[focusedIdx];
+					if (a.isOtherUser) break;
 					toggleSelect(a, !selectedKeys.has(aliasKey(a)));
 				}
 				break;
 			case 't': {
-				const targets = selectedAliases.length > 0
+				const rawTargets = selectedAliases.length > 0
 					? selectedAliases
 					: focusedIdx >= 0 && focusedIdx < visibleAliases.length ? [visibleAliases[focusedIdx]] : [];
+				const targets = rawTargets.filter((a) => !a.isOtherUser);
 				if (targets.length > 0) {
 					e.preventDefault();
 					if (selectedAliases.length > 0) {
@@ -316,9 +332,10 @@
 				break;
 			}
 			case 'e': {
-				const targets = selectedAliases.length > 0
+				const rawTargets = selectedAliases.length > 0
 					? selectedAliases
 					: focusedIdx >= 0 && focusedIdx < visibleAliases.length ? [visibleAliases[focusedIdx]] : [];
+				const targets = rawTargets.filter((a) => !a.isOtherUser);
 				if (targets.length > 0) {
 					e.preventDefault();
 					if (selectedAliases.length > 0) {
@@ -332,9 +349,10 @@
 				break;
 			}
 			case 'd': {
-				const targets = selectedAliases.length > 0
+				const rawTargets = selectedAliases.length > 0
 					? selectedAliases
 					: focusedIdx >= 0 && focusedIdx < visibleAliases.length ? [visibleAliases[focusedIdx]] : [];
+				const targets = rawTargets.filter((a) => !a.isOtherUser);
 				if (targets.length > 0) {
 					e.preventDefault();
 					if (selectedAliases.length > 0) {
@@ -349,9 +367,10 @@
 			}
 			case 'Backspace':
 			case 'Delete': {
-				const targets = selectedAliases.length > 0
+				const rawTargets = selectedAliases.length > 0
 					? selectedAliases
 					: focusedIdx >= 0 && focusedIdx < visibleAliases.length ? [visibleAliases[focusedIdx]] : [];
+				const targets = rawTargets.filter((a) => !a.isOtherUser);
 				if (targets.length > 0) {
 					e.preventDefault();
 					if (selectedAliases.length > 0) {
@@ -437,6 +456,8 @@
 				{userAliasCount}
 				domainAliasCount={aliasCounts[defaultDomain] ?? 0}
 				userRole={data.user?.role}
+				userDomainQuotas={data.userDomainQuotas}
+				{userDomainCounts}
 				onCreated={addAlias}
 				onAddDomain={() => (showAddDomain = true)}
 				focusTrigger={focusCreateTrigger}

@@ -25,6 +25,7 @@
 	// Edit user quota modal state
 	let editingUser = $state<any | null>(null);
 	let editQuotaValue = $state<number | string>('');
+	let editDomainQuotas = $state<Record<string, number | string>>({});
 	let savingQuota = $state(false);
 
 	// Reset password modal state
@@ -100,6 +101,8 @@
 						maxAliases: body.maxAliases ?? settings.defaultUserAliasQuota,
 						customQuota: body.maxAliases != null,
 						aliasCount: 0,
+						domainQuotas: body.domainQuotas ?? {},
+						domainUsage: {},
 						twoFactorEnabled: false
 					}
 				];
@@ -120,10 +123,19 @@
 		savingQuota = true;
 		try {
 			const val = editQuotaValue === '' ? null : Number(editQuotaValue);
+			const cleanDomainQuotas: Record<string, number> = {};
+			for (const [dom, q] of Object.entries(editDomainQuotas)) {
+				if (q !== '' && q != null && !isNaN(Number(q))) {
+					cleanDomainQuotas[dom] = Number(q);
+				}
+			}
 			const res = await fetch(`/api/admin/users/${editingUser.username}`, {
 				method: 'PATCH',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ maxAliases: val })
+				body: JSON.stringify({
+					maxAliases: val,
+					domainQuotas: cleanDomainQuotas
+				})
 			});
 			if (res.ok) {
 				const updated = await res.json();
@@ -132,7 +144,8 @@
 						? {
 								...u,
 								maxAliases: updated.maxAliases ?? settings.defaultUserAliasQuota,
-								customQuota: updated.maxAliases != null
+								customQuota: updated.maxAliases != null,
+								domainQuotas: updated.domainQuotas ?? {}
 							}
 						: u
 				);
@@ -614,6 +627,14 @@
 												{#if !u.customQuota}
 													<span class="text-[10px] text-app-muted">(default)</span>
 												{/if}
+												{#if u.domainQuotas && Object.keys(u.domainQuotas).length > 0}
+													<span
+														class="inline-block ml-1 px-1.5 py-0.5 rounded text-[10px] bg-app-accent/15 text-app-accent font-sans"
+														title={Object.entries(u.domainQuotas).map(([d, q]) => `${d}: ${q}`).join(', ')}
+													>
+														{Object.keys(u.domainQuotas).length} {t('admin.tabs.domains', { count: '' }).trim()}
+													</span>
+												{/if}
 											</span>
 										</div>
 									</td>
@@ -642,6 +663,7 @@
 											onclick={() => {
 												editingUser = u;
 												editQuotaValue = u.customQuota ? u.maxAliases : '';
+												editDomainQuotas = { ...(u.domainQuotas ?? {}) };
 											}}
 											class="text-xs text-app-accent hover:underline"
 										>
@@ -1365,13 +1387,13 @@
 <!-- Modal: Edit Quota -->
 {#if editingUser}
 	<div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-		<div class="bg-app-surface border border-app-border rounded-2xl p-6 max-w-sm w-full shadow-2xl">
+		<div class="bg-app-surface border border-app-border rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] flex flex-col">
 			<h3 class="text-base font-bold mb-1">{t('admin.users.editQuotaTitle')}</h3>
 			<p class="text-xs text-app-muted mb-4">
 				{t('admin.users.editQuotaSubtitle', { username: editingUser.username })}
 			</p>
 
-			<div class="space-y-4">
+			<div class="space-y-4 overflow-y-auto flex-1 pr-1">
 				<div>
 					<label for="edit-quota-value" class="block text-xs font-medium text-app-text mb-1">
 						{t('admin.users.customQuotaLabel')}
@@ -1387,7 +1409,40 @@
 					<p class="text-[11px] text-app-muted mt-1">{t('admin.users.currentlyUsed', { count: editingUser.aliasCount })}</p>
 				</div>
 
-				<div class="flex items-center justify-end gap-2 pt-2">
+				{#if domains.length > 0}
+					<div class="border-t border-app-border/50 pt-3">
+						<h4 class="text-xs font-semibold text-app-text mb-1">
+							{t('admin.users.domainQuotaTitle')}
+						</h4>
+						<p class="text-[11px] text-app-muted mb-3">
+							{t('admin.users.domainQuotaSubtitle')}
+						</p>
+
+						<div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+							{#each domains as d (d.domain)}
+								<div class="flex items-center justify-between gap-3 bg-app-hover/30 p-2 rounded-lg border border-app-border/40">
+									<div class="min-w-0 flex-1">
+										<div class="text-xs font-mono font-medium truncate text-app-text">@{d.domain}</div>
+										<div class="text-[10px] text-app-muted">
+											{t('admin.users.currentlyUsed', { count: editingUser.domainUsage?.[d.domain] ?? 0 })}
+										</div>
+									</div>
+									<div class="w-24 shrink-0">
+										<input
+											type="number"
+											min="0"
+											bind:value={editDomainQuotas[d.domain]}
+											placeholder={t('admin.users.domainQuotaInherit')}
+											class="w-full px-2 py-1 text-xs rounded border border-app-border bg-app-hover text-app-text outline-none focus:border-app-accent"
+										/>
+									</div>
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+
+				<div class="flex items-center justify-end gap-2 pt-2 border-t border-app-border/50">
 					<button
 						type="button"
 						onclick={() => (editingUser = null)}

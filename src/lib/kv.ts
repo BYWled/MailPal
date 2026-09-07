@@ -316,3 +316,26 @@ export async function countUserAliases(kv: KVNamespace, username: string): Promi
 	return count;
 }
 
+export function getUserDomainQuota(
+	user: User | null | undefined,
+	domain: string,
+	defaultQuota = DEFAULT_USER_ALIAS_QUOTA
+): number {
+	if (!user) return defaultQuota;
+	const normDomain = domain.toLowerCase().trim();
+	if (user.domainQuotas && user.domainQuotas[normDomain] != null) {
+		return user.domainQuotas[normDomain];
+	}
+	return user.maxAliases ?? defaultQuota;
+}
+
+export async function countUserAliasesOnDomain(
+	kv: KVNamespace,
+	username: string,
+	domain: string
+): Promise<number> {
+	const normUser = username.toLowerCase().trim();
+	const aliases = await listAliases(kv, domain);
+	return aliases.filter((a) => a.createdBy?.toLowerCase().trim() === normUser).length;
+}
+

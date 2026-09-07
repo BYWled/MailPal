@@ -6,7 +6,8 @@ import {
 	listAliases,
 	listBlacklist,
 	getSystemSettings,
-	countUserAliases
+	countUserAliases,
+	countUserAliasesOnDomain
 } from '$lib/kv.js';
 import { syncCloudflareDomainsAndDns } from '$lib/cloudflare.js';
 
@@ -48,12 +49,20 @@ export const load: PageServerLoad = async ({ locals, platform }) => {
 	const users = await Promise.all(
 		rawUsers.map(async (u) => {
 			const aliasCount = await countUserAliases(locals.kv, u.username);
+			const domainUsage: Record<string, number> = {};
+			await Promise.all(
+				domains.map(async (d) => {
+					domainUsage[d.domain] = await countUserAliasesOnDomain(locals.kv, u.username, d.domain);
+				})
+			);
 			return {
 				username: u.username,
 				role: u.role,
 				createdAt: u.createdAt,
 				maxAliases: u.maxAliases ?? settings.defaultUserAliasQuota,
 				customQuota: u.maxAliases != null,
+				domainQuotas: u.domainQuotas ?? {},
+				domainUsage,
 				aliasCount,
 				twoFactorEnabled: u.twoFactorEnabled
 			};

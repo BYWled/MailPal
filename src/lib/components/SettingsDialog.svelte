@@ -42,6 +42,113 @@
 	let showDestinationForm = $state(false);
 	let deletingTag = $state<string | null>(null);
 
+	// Cloudflare destination probe state
+	interface ProbeInfo {
+		id?: string;
+		verified: boolean;
+		status: 'verified' | 'pending' | 'not_in_cf';
+		created?: string;
+	}
+
+	let tokenConfigured = $state<boolean | null>(null);
+	let probeStatuses = $state<Record<string, ProbeInfo>>({});
+	let probing = $state(false);
+	let probeError = $state('');
+	let addingToCf = $state<Record<string, boolean>>({});
+	let cfActionMsg = $state<Record<string, { type: 'success' | 'error'; text: string }>>({});
+
+	async function fetchProbeStatuses() {
+		if (probing) return;
+		probing = true;
+		probeError = '';
+		try {
+			const res = await fetch('/api/destinations/probe');
+			const data = (await res.json()) as any;
+			if (res.ok) {
+				tokenConfigured = Boolean(data.tokenConfigured);
+				if (data.statuses) {
+					probeStatuses = { ...data.statuses };
+				}
+			} else {
+				probeError = data.error || 'Failed to probe statuses';
+			}
+		} catch {
+			probeError = 'Network error while probing';
+		} finally {
+			probing = false;
+		}
+	}
+
+	async function handleProbeSingle(email: string) {
+		try {
+			const res = await fetch('/api/destinations/probe', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email, action: 'probe' })
+			});
+			const data = (await res.json()) as any;
+			if (res.ok && data.success) {
+				probeStatuses = {
+					...probeStatuses,
+					[email]: {
+						id: data.id,
+						verified: Boolean(data.verified),
+						status: data.status,
+						created: data.created
+					}
+				};
+			}
+		} catch {
+			// ignore
+		}
+	}
+
+	async function handleAddToCf(email: string) {
+		addingToCf = { ...addingToCf, [email]: true };
+		cfActionMsg = { ...cfActionMsg, [email]: undefined as any };
+		try {
+			const res = await fetch('/api/destinations/probe', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email, action: 'add_to_cf' })
+			});
+			const data = (await res.json()) as any;
+			if (res.ok && data.success) {
+				probeStatuses = {
+					...probeStatuses,
+					[email]: {
+						id: data.id,
+						verified: Boolean(data.verified),
+						status: data.status,
+						created: data.created
+					}
+				};
+				cfActionMsg = {
+					...cfActionMsg,
+					[email]: { type: 'success', text: t('settingsDialog.addToCfSuccess') }
+				};
+			} else {
+				cfActionMsg = {
+					...cfActionMsg,
+					[email]: { type: 'error', text: data.error || t('settingsDialog.addToCfFailed', { error: 'Failed' }) }
+				};
+			}
+		} catch (err: any) {
+			cfActionMsg = {
+				...cfActionMsg,
+				[email]: { type: 'error', text: err?.message || 'Network error' }
+			};
+		} finally {
+			addingToCf = { ...addingToCf, [email]: false };
+		}
+	}
+
+	$effect(() => {
+		if (open) {
+			fetchProbeStatuses();
+		}
+	});
+
 	async function handleAdd(e: Event) {
 		e.preventDefault();
 		adding = true;
@@ -57,7 +164,9 @@
 				addError = body.error ?? t('settingsDialog.failedToAdd');
 			} else {
 				onAdded(body as DestinationAddress);
-				justAdded = newEmail.trim();
+				const addedEmail = newEmail.trim();
+				justAdded = addedEmail;
+				handleProbeSingle(addedEmail);
 				newEmail = '';
 			}
 		} catch {
@@ -155,45 +264,148 @@
 	<div class="p-6 space-y-4">
 
 		<!-- Section header -->
-		<div>
-			<h3 class="text-sm font-semibold text-app-text mb-0.5">{t('settingsDialog.destinationsTitle')}</h3>
-			<p class="text-xs text-app-muted leading-relaxed">
-				{t('settingsDialog.destinationsDesc')}
-			</p>
+		<div class="flex items-center justify-between">
+			<div>
+				<h3 class="text-sm font-semibold text-app-text mb-0.5">{t('settingsDialog.destinationsTitle')}</h3>
+				<p class="text-xs text-app-muted leading-relaxed">
+					{t('settingsDialog.destinationsDesc')}
+				</p>
+			</div>
+			{#if tokenConfigured}
+				<button
+					type="button"
+					onclick={fetchProbeStatuses}
+					disabled={probing}
+					class="shrink-0 ml-2 px-2.5 py-1 text-xs rounded-lg border border-app-border bg-app-hover text-app-muted hover:text-app-text flex items-center gap-1.5 transition-colors disabled:opacity-50"
+					title={t('settingsDialog.refreshProbeBtn')}
+				>
+					<svg class="w-3.5 h-3.5 {probing ? 'animate-spin' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+					</svg>
+					<span>{probing ? t('settingsDialog.refreshingProbe') : t('settingsDialog.refreshProbeBtn')}</span>
+				</button>
+			{/if}
 		</div>
 
 		<!-- Address list -->
 		{#if destinations.length > 0}
-			<ul class="space-y-2" aria-label={t('settingsDialog.destinationsTitle')}>
+			<ul class="space-y-2.5" aria-label={t('settingsDialog.destinationsTitle')}>
 				{#each destinations as dest (dest.email)}
-					<li class="flex flex-col gap-2">
-						<div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-app-hover border border-app-border">
-							<!-- Dot indicator -->
-							<!-- <span class="w-1.5 h-1.5 rounded-full bg-app-accent/70 shrink-0" aria-hidden="true"></span> -->
-							<span class="flex-1 text-sm text-app-text truncate">{dest.email}</span>
-							<button
-								onclick={() => handleDelete(dest.email)}
-								disabled={deletingEmail === dest.email}
-								aria-label={t('settingsDialog.removeAddressAria', { email: dest.email })}
-								class="p-1 text-app-muted/60 hover:text-red-400 rounded transition-colors disabled:opacity-40 shrink-0"
-							>
-								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-								</svg>
-							</button>
+					{@const probe = probeStatuses[dest.email.toLowerCase()] ?? probeStatuses[dest.email]}
+					<li class="flex flex-col gap-2 p-3 rounded-lg bg-app-hover/60 border border-app-border/80 transition-all">
+						<div class="flex items-center gap-2 justify-between flex-wrap">
+							<div class="flex items-center gap-2 min-w-0 flex-1">
+								<span class="text-sm font-medium text-app-text truncate">{dest.email}</span>
+
+								<!-- Probe Status Badge -->
+								{#if probe}
+									{#if probe.status === 'verified'}
+										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+											</svg>
+											{t('settingsDialog.statusVerified')}
+										</span>
+									{:else if probe.status === 'pending'}
+										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/15 text-amber-400 border border-amber-500/30">
+											<svg class="w-3 h-3 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<circle cx="12" cy="12" r="9" stroke-width="2" />
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 3" />
+											</svg>
+											{t('settingsDialog.statusPending')}
+										</span>
+									{:else if probe.status === 'not_in_cf'}
+										<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-500/15 text-rose-400 border border-rose-500/30">
+											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<circle cx="12" cy="12" r="9" stroke-width="2" />
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01" />
+											</svg>
+											{t('settingsDialog.statusNotInCf')}
+										</span>
+									{/if}
+								{:else if tokenConfigured === false}
+									<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-app-muted bg-app-border/40">
+										{t('settingsDialog.statusNoToken')}
+									</span>
+								{:else if probing}
+									<span class="inline-flex items-center gap-1 text-[11px] text-app-muted">
+										<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+										</svg>
+										{t('settingsDialog.refreshingProbe')}
+									</span>
+								{/if}
+							</div>
+
+							<div class="flex items-center gap-1.5 shrink-0">
+								{#if probe?.status === 'not_in_cf' && tokenConfigured}
+									<button
+										type="button"
+										onclick={() => handleAddToCf(dest.email)}
+										disabled={addingToCf[dest.email]}
+										class="px-2.5 py-1 text-xs font-semibold rounded-md bg-app-accent hover:brightness-110 text-app-bg transition-all disabled:opacity-50 flex items-center gap-1 shadow-sm"
+									>
+										{#if addingToCf[dest.email]}
+											<svg class="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+											</svg>
+											<span>{t('settingsDialog.addingToCf')}</span>
+										{:else}
+											<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+											</svg>
+											<span>{t('settingsDialog.addToCfBtn')}</span>
+										{/if}
+									</button>
+								{:else if probe?.status === 'pending'}
+									<button
+										type="button"
+										onclick={() => handleProbeSingle(dest.email)}
+										class="px-2.5 py-1 text-xs rounded border border-app-border bg-app-hover text-app-muted hover:text-app-text transition-colors"
+									>
+										{t('settingsDialog.refreshProbeBtn')}
+									</button>
+								{/if}
+
+								<button
+									onclick={() => handleDelete(dest.email)}
+									disabled={deletingEmail === dest.email}
+									aria-label={t('settingsDialog.removeAddressAria', { email: dest.email })}
+									class="p-1.5 text-app-muted/60 hover:text-red-400 rounded transition-colors disabled:opacity-40 shrink-0 ml-1"
+								>
+									<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+									</svg>
+								</button>
+							</div>
 						</div>
 
-						<!-- Cloudflare setup guide for newly added address -->
-						{#if justAdded === dest.email}
-							<div class="ml-3 pl-3 border-l-2 border-app-accent/30 space-y-2.5">
+						<!-- Status description or feedback message -->
+						{#if cfActionMsg[dest.email]}
+							<div class="text-xs px-2.5 py-1.5 rounded {cfActionMsg[dest.email].type === 'success' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-red-500/10 text-red-300 border border-red-500/20'}">
+								{cfActionMsg[dest.email].text}
+							</div>
+						{:else if probe?.status === 'pending'}
+							<p class="text-[11px] text-amber-400/90 leading-relaxed bg-amber-400/5 px-2.5 py-1.5 rounded border border-amber-400/20">
+								{t('settingsDialog.pendingDesc')}
+							</p>
+						{:else if probe?.status === 'not_in_cf'}
+							<p class="text-[11px] text-app-muted leading-relaxed">
+								{t('settingsDialog.notInCfDesc')}
+							</p>
+						{/if}
+
+						<!-- Cloudflare setup guide for newly added address when no token -->
+						{#if justAdded === dest.email && (!tokenConfigured || probe?.status === 'not_in_cf')}
+							<div class="ml-2 pl-3 border-l-2 border-app-accent/30 space-y-2 pt-1">
 								<p class="text-xs font-medium text-app-accent">{t('settingsDialog.verifyInCf')}</p>
-								<ol class="space-y-2">
+								<ol class="space-y-1.5">
 									{#each [
 										t('settingsDialog.cfStep1'),
 										t('settingsDialog.cfStep2', { email: dest.email }),
 										t('settingsDialog.cfStep3')
 									] as instruction, i}
-										<li class="flex gap-2.5 text-xs text-app-muted leading-relaxed">
+										<li class="flex gap-2 text-xs text-app-muted leading-relaxed">
 											<span class="flex-none w-4 h-4 rounded-full border border-app-border text-[10px] font-bold flex items-center justify-center mt-px text-app-muted/70" aria-hidden="true">
 												{i + 1}
 											</span>

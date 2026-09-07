@@ -49,7 +49,7 @@
 
 	// Programmatic expand from keyboard shortcut
 	$effect(() => {
-		if (expandTrigger > 0) expanded = true;
+		if (expandTrigger > 0 && !alias.isOtherUser) expanded = true;
 		else expanded = false;
 	});
 
@@ -147,6 +147,7 @@
 	}
 
 	function toggleExpand() {
+		if (alias.isOtherUser) return;
 		expanded = !expanded;
 		if (!expanded) {
 			saveError = '';
@@ -233,6 +234,7 @@
 	}
 
 	function expandToActivity() {
+		if (alias.isOtherUser) return;
 		expanded = true;
 		switchTab('activity');
 	}
@@ -297,16 +299,17 @@
 >
 	<!-- ── Collapsed row ─────────────────────────────────────────────────── -->
 	<div
-		class="group flex items-center gap-4 px-4 py-3 {selectionMode ? 'cursor-pointer' : ''}"
+		class="group flex items-center gap-4 px-4 py-3 {selectionMode && !alias.isOtherUser ? 'cursor-pointer' : ''}"
 		onclick={(e) => {
+			if (alias.isOtherUser) return;
 			if ((e.target as HTMLElement).closest('button, a, input, textarea, select')) return;
 			onSelect?.(!selected);
 		}}
 	>
 
 		<div class="flex items-center gap-3 shrink-0 flex-1 min-w-0">
-			<!-- Selection checkbox (only in selection mode) -->
-			{#if selectionMode}
+			<!-- Selection checkbox (only in selection mode and for own aliases) -->
+			{#if selectionMode && !alias.isOtherUser}
 				<button
 					type="button"
 					onclick={(e) => { e.stopPropagation(); onSelect?.(!selected); }}
@@ -332,14 +335,23 @@
 			<!-- Address + inline tags + note preview -->
 			<div class="flex-1 min-w-0">
 				<div class="flex items-center gap-1.5 flex-wrap">
-					<span class="font-semibold text-app-text text-sm">{alias.localPart}</span>
+					<span class="font-semibold text-app-text text-sm font-mono tracking-wide">{alias.localPart}</span>
 					<span class="text-app-muted text-sm shrink-0">@{alias.domain}</span>
-					<div class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-						<CopyButton text={fullAddress} />
-					</div>
+					{#if alias.isOtherUser}
+						<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-500/15 text-zinc-400 border border-zinc-500/30" title={t('alias.otherUserPrivacyDesc')}>
+							<svg class="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+							</svg>
+							{t('alias.otherUserPrivacy')}
+						</span>
+					{:else}
+						<div class="opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+							<CopyButton text={fullAddress} />
+						</div>
+					{/if}
 				</div>
 				<!-- Note preview (collapsed only) -->
-				{#if !expanded && alias.note}
+				{#if !expanded && alias.note && !alias.isOtherUser}
 					<p class="text-xs text-app-muted mt-0.5 truncate">{alias.note}</p>
 				{/if}
 			</div>
@@ -402,96 +414,144 @@
 
 		<!-- Stats -->
 		<div class="hidden md:flex items-center gap-2 shrink-0">
-			<Tooltip.Root delayDuration={300}>
-				<Tooltip.Trigger
-					onclick={(e) => { e.stopPropagation(); expandToActivity(); }}
-					class="flex items-center gap-1 text-xs text-app-muted cursor-pointer hover:text-app-text transition-colors"
-					aria-label={t('alias.blockedTooltip', { count: alias.blockedCount })}
+			{#if alias.isOtherUser}
+				<div
+					class="flex items-center gap-1 text-xs text-app-muted cursor-default opacity-60"
+					title={t('alias.blockedTooltip', { count: alias.blockedCount })}
 				>
 					<svg class="w-3.5 h-3.5 text-red-400/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
 						<circle cx="12" cy="12" r="10" stroke-width="2" />
 						<path stroke-linecap="round" stroke-width="2" d="M4.93 4.93l14.14 14.14" />
 					</svg>
 					{alias.blockedCount}
-				</Tooltip.Trigger>
-				<Tooltip.Portal>
-					<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
-						{t('alias.blockedTooltip', { count: alias.blockedCount })}
-						<Tooltip.Arrow class="text-app-border" />
-					</Tooltip.Content>
-				</Tooltip.Portal>
-			</Tooltip.Root>
+				</div>
 
-			<Tooltip.Root delayDuration={300}>
-				<Tooltip.Trigger
-					onclick={(e) => { e.stopPropagation(); expandToActivity(); }}
-					class="flex items-center gap-1 text-xs text-app-muted cursor-pointer hover:text-app-text transition-colors"
-					aria-label={t('alias.forwardedTooltip', { count: alias.forwardedCount })}
+				<div
+					class="flex items-center gap-1 text-xs text-app-muted cursor-default opacity-60"
+					title={t('alias.forwardedTooltip', { count: alias.forwardedCount })}
 				>
 					<svg class="w-3.5 h-3.5 text-green-400/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
 					</svg>
 					{alias.forwardedCount}
+				</div>
+			{:else}
+				<Tooltip.Root delayDuration={300}>
+					<Tooltip.Trigger
+						onclick={(e) => { e.stopPropagation(); expandToActivity(); }}
+						class="flex items-center gap-1 text-xs text-app-muted cursor-pointer hover:text-app-text transition-colors"
+						aria-label={t('alias.blockedTooltip', { count: alias.blockedCount })}
+					>
+						<svg class="w-3.5 h-3.5 text-red-400/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+							<circle cx="12" cy="12" r="10" stroke-width="2" />
+							<path stroke-linecap="round" stroke-width="2" d="M4.93 4.93l14.14 14.14" />
+						</svg>
+						{alias.blockedCount}
+					</Tooltip.Trigger>
+					<Tooltip.Portal>
+						<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
+							{t('alias.blockedTooltip', { count: alias.blockedCount })}
+							<Tooltip.Arrow class="text-app-border" />
+						</Tooltip.Content>
+					</Tooltip.Portal>
+				</Tooltip.Root>
+
+				<Tooltip.Root delayDuration={300}>
+					<Tooltip.Trigger
+						onclick={(e) => { e.stopPropagation(); expandToActivity(); }}
+						class="flex items-center gap-1 text-xs text-app-muted cursor-pointer hover:text-app-text transition-colors"
+						aria-label={t('alias.forwardedTooltip', { count: alias.forwardedCount })}
+					>
+						<svg class="w-3.5 h-3.5 text-green-400/70" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+						</svg>
+						{alias.forwardedCount}
+					</Tooltip.Trigger>
+					<Tooltip.Portal>
+						<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
+							{t('alias.forwardedTooltip', { count: alias.forwardedCount })}
+							<Tooltip.Arrow class="text-app-border" />
+						</Tooltip.Content>
+					</Tooltip.Portal>
+				</Tooltip.Root>
+			{/if}
+		</div>
+
+		<!-- Toggle -->
+		{#if alias.isOtherUser}
+			<Tooltip.Root delayDuration={300}>
+				<Tooltip.Trigger
+					disabled={true}
+					class="flex items-center justify-end gap-2 min-w-[5.5rem] cursor-not-allowed opacity-60"
+				>
+					<div
+						class="w-3 h-3 rounded-full shrink-0
+							{alias.enabled ? 'bg-app-accent' : 'bg-red-400/60'}"
+					></div>
+					<span class="hidden sm:block text-[11px] font-bold tracking-widest shrink-0 {alias.enabled ? 'text-app-accent' : 'text-red-400/80'}">
+						{alias.enabled ? t('alias.activeBadge') : t('alias.disabledBadge')}
+					</span>
 				</Tooltip.Trigger>
 				<Tooltip.Portal>
 					<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
-						{t('alias.forwardedTooltip', { count: alias.forwardedCount })}
+						{t('alias.otherUserCannotEdit')}
 						<Tooltip.Arrow class="text-app-border" />
 					</Tooltip.Content>
 				</Tooltip.Portal>
 			</Tooltip.Root>
-		</div>
-
-		<!-- Toggle -->
-		<Tooltip.Root delayDuration={300}>
-			<Tooltip.Trigger
-				onclick={handleToggle}
-				disabled={toggling}
-				aria-pressed={alias.enabled}
-				aria-label={alias.enabled ? t('alias.disableAlias') : t('alias.enableAlias')}
-				class="flex items-center justify-end gap-2 min-w-[5.5rem] group/toggle disabled:opacity-60"
-			>
-				<div
-					class="w-3 h-3 rounded-full shrink-0 transition-all group-hover/toggle:scale-110 group-hover/toggle:brightness-125
-						{alias.enabled ? 'bg-app-accent' : 'bg-red-400/60'}"
-				></div>
-				<span class="hidden sm:block text-[11px] font-bold tracking-widest shrink-0 {alias.enabled ? 'text-app-accent' : 'text-red-400/80'}">
-					{alias.enabled ? t('alias.activeBadge') : t('alias.disabledBadge')}
-				</span>
-			</Tooltip.Trigger>
-			<Tooltip.Portal>
-				<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
-					{alias.enabled ? t('alias.disableAlias') : t('alias.enableAlias')}
-					<Tooltip.Arrow class="text-app-border" />
-				</Tooltip.Content>
-			</Tooltip.Portal>
-		</Tooltip.Root>
+		{:else}
+			<Tooltip.Root delayDuration={300}>
+				<Tooltip.Trigger
+					onclick={handleToggle}
+					disabled={toggling}
+					aria-pressed={alias.enabled}
+					aria-label={alias.enabled ? t('alias.disableAlias') : t('alias.enableAlias')}
+					class="flex items-center justify-end gap-2 min-w-[5.5rem] group/toggle disabled:opacity-60"
+				>
+					<div
+						class="w-3 h-3 rounded-full shrink-0 transition-all group-hover/toggle:scale-110 group-hover/toggle:brightness-125
+							{alias.enabled ? 'bg-app-accent' : 'bg-red-400/60'}"
+					></div>
+					<span class="hidden sm:block text-[11px] font-bold tracking-widest shrink-0 {alias.enabled ? 'text-app-accent' : 'text-red-400/80'}">
+						{alias.enabled ? t('alias.activeBadge') : t('alias.disabledBadge')}
+					</span>
+				</Tooltip.Trigger>
+				<Tooltip.Portal>
+					<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
+						{alias.enabled ? t('alias.disableAlias') : t('alias.enableAlias')}
+						<Tooltip.Arrow class="text-app-border" />
+					</Tooltip.Content>
+				</Tooltip.Portal>
+			</Tooltip.Root>
+		{/if}
 
 		<!-- Expand chevron -->
-		<Tooltip.Root delayDuration={300}>
-			<Tooltip.Trigger
-				onclick={toggleExpand}
-				aria-expanded={expanded}
-				aria-label={expanded ? t('alias.collapse') : t('alias.editAlias')}
-				class="p-1.5 rounded transition-colors shrink-0
-					{expanded
-						? 'text-app-accent bg-app-accent/10'
-						: 'text-app-muted/50 hover:text-app-muted hover:bg-app-hover'}"
-			>
-				<svg
-					class="w-3.5 h-3.5 transition-transform duration-200 {expanded ? 'rotate-180' : ''}"
-					fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
+		{#if !alias.isOtherUser}
+			<Tooltip.Root delayDuration={300}>
+				<Tooltip.Trigger
+					onclick={toggleExpand}
+					aria-expanded={expanded}
+					aria-label={expanded ? t('alias.collapse') : t('alias.editAlias')}
+					class="p-1.5 rounded transition-colors shrink-0
+						{expanded
+							? 'text-app-accent bg-app-accent/10'
+							: 'text-app-muted/50 hover:text-app-muted hover:bg-app-hover'}"
 				>
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-				</svg>
-			</Tooltip.Trigger>
-			<Tooltip.Portal>
-				<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
-					{expanded ? t('alias.collapse') : t('alias.editAlias')}
-					<Tooltip.Arrow class="text-app-border" />
-				</Tooltip.Content>
-			</Tooltip.Portal>
-		</Tooltip.Root>
+					<svg
+						class="w-3.5 h-3.5 transition-transform duration-200 {expanded ? 'rotate-180' : ''}"
+						fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+					</svg>
+				</Tooltip.Trigger>
+				<Tooltip.Portal>
+					<Tooltip.Content class="z-50 px-2 py-1 rounded-md bg-app-surface border border-app-border text-xs text-app-text shadow-md" sideOffset={4}>
+						{expanded ? t('alias.collapse') : t('alias.editAlias')}
+						<Tooltip.Arrow class="text-app-border" />
+					</Tooltip.Content>
+				</Tooltip.Portal>
+			</Tooltip.Root>
+		{/if}
 	</div>
 
 	<!-- ── Expanded panel ────────────────────────────────────────────────── -->

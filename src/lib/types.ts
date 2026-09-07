@@ -11,6 +11,8 @@ export interface DomainConfig {
 export interface DestinationAddress {
 	email: string;
 	createdAt: number;
+	verified?: boolean; // true if verified in Cloudflare Email Routing
+	verificationStatus?: 'verified' | 'pending' | 'not_in_cf' | 'no_token';
 }
 
 export interface Tag {
@@ -41,6 +43,7 @@ export interface AliasConfig {
 	expiresAt?: number;    // Unix ms — worker rejects after this timestamp
 	maxForwards?: number;  // worker auto-disables when forwardedCount >= this
 	createdBy?: string;    // username of the creator
+	isOtherUser?: boolean; // true if this alias belongs to another user (for privacy masking)
 }
 
 export interface User {
@@ -48,7 +51,8 @@ export interface User {
 	passwordHash: string; // PBKDF2 hash: pbkdf2$iterations$salt$hash
 	role: 'superadmin' | 'user';
 	createdAt: number;
-	maxAliases?: number; // per-user quota (null/undefined = use system default)
+	maxAliases?: number; // fallback/default per-user quota across domains
+	domainQuotas?: Record<string, number>; // per-domain quota map: { [domain]: maxAliases }
 	twoFactorSecret?: string; // base32 TOTP secret
 	twoFactorEnabled: boolean;
 }

@@ -8,30 +8,49 @@ import {
 	isAliasBlacklisted,
 	getUser,
 	getSystemSettings,
-	countUserAliases
+	countUserAliases,
+	getUserDomainQuota,
+	countUserAliasesOnDomain
 } from '$lib/kv.js';
 import { generateSlug } from '$lib/sluggen.js';
+import { maskLocalPart } from '$lib/mask.js';
 import type { AliasConfig } from '$lib/types.js';
 
 export const GET: RequestHandler = async ({ params, locals }) => {
 	const domain = await getDomain(locals.kv, params.domain);
 	if (!domain) return json({ error: 'Domain not found' }, { status: 404 });
 
-	if (locals.user?.role !== 'superadmin' && domain.ownerUsername && domain.ownerUsername !== locals.user?.username) {
-		return json({ error: 'Forbidden' }, { status: 403 });
-	}
-
 	const aliases = await listAliases(locals.kv, params.domain);
-	aliases.sort((a, b) => a.createdAt - b.createdAt);
-	return json(aliases);
+	const isSuperadmin = locals.user?.role === 'superadmin';
+	const currentUsername = locals.user?.username?.toLowerCase().trim();
+
+	const sanitized = aliases.map((a) => {
+		const isOwner = a.createdBy?.toLowerCase().trim() === currentUsername;
+		if (!isOwner && !isSuperadmin) {
+			return {
+				...a,
+				localPart: maskLocalPart(a.localPart),
+				targetEmail: null,
+				note: undefined,
+				tags: [],
+				isOtherUser: true
+			};
+		}
+		return {
+			...a,
+			isOtherUser: false
+		};
+	});
+
+	sanitized.sort((a, b) => a.createdAt - b.createdAt);
+	return json(sanitized);
 };
 
 export const POST: RequestHandler = async ({ params, request, locals }) => {
 	const domain = await getDomain(locals.kv, params.domain);
 	if (!domain) return json({ error: 'Domain not found' }, { status: 404 });
-
-	if (locals.user?.role !== 'superadmin' && domain.ownerUsername && domain.ownerUsername !== locals.user?.username) {
-		return json({ error: 'Forbidden: You do not own this domain' }, { status: 403 });
+	if (!domain.enabled) {
+		return json({ error: 'Domain is disabled' }, { status: 400 });
 	}
 
 	// 1. Check domain 50 aliases limit
@@ -40,17 +59,23 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 		return json({ error: 'This domain has reached the maximum limit of 50 email aliases' }, { status: 400 });
 	}
 
-	// 2. Check user quota (if not superadmin)
+	// 2. Check user quota per domain (if not superadmin)
 	if (locals.user && locals.user.role !== 'superadmin') {
 		const [userObj, settings] = await Promise.all([
 			getUser(locals.kv, locals.user.username),
 			getSystemSettings(locals.kv)
 		]);
-		const quota = userObj?.maxAliases ?? settings.defaultUserAliasQuota;
-		const userCount = await countUserAliases(locals.kv, locals.user.username);
-		if (userCount >= quota) {
+		const domainQuota = getUserDomainQuota(userObj, params.domain, settings.defaultUserAliasQuota);
+		if (domainQuota <= 0) {
 			return json(
-				{ error: `You have reached your allowed quota of ${quota} email aliases` },
+				{ error: `You do not have quota to create aliases on domain ${params.domain}` },
+				{ status: 403 }
+			);
+		}
+		const userCountOnDomain = await countUserAliasesOnDomain(locals.kv, locals.user.username, params.domain);
+		if (userCountOnDomain >= domainQuota) {
+			return json(
+				{ error: `You have reached your allowed quota of ${domainQuota} email aliases on domain ${params.domain}` },
 				{ status: 400 }
 			);
 		}

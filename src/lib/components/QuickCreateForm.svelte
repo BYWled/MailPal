@@ -11,6 +11,8 @@
 		userAliasCount,
 		domainAliasCount,
 		userRole,
+		userDomainQuotas,
+		userDomainCounts,
 		onCreated,
 		onAddDomain,
 		focusTrigger = 0
@@ -21,16 +23,40 @@
 		userAliasCount?: number;
 		domainAliasCount?: number;
 		userRole?: 'superadmin' | 'user';
+		userDomainQuotas?: Record<string, number>;
+		userDomainCounts?: Record<string, number>;
 		onCreated: (alias: AliasConfig) => void;
 		onAddDomain: () => void;
 		focusTrigger?: number;
 	} = $props();
 
-	const isDomainLimitReached = $derived((domainAliasCount ?? 0) >= 50);
-	const isUserQuotaReached = $derived(
-		userRole !== 'superadmin' && userQuota != null && (userAliasCount ?? 0) >= userQuota
+	let newDomain = $state(defaultDomain);
+
+	const currentDomainQuota = $derived(
+		newDomain && userDomainQuotas && newDomain in userDomainQuotas
+			? userDomainQuotas[newDomain]
+			: userQuota
 	);
-	const isCreateBlocked = $derived(isDomainLimitReached || isUserQuotaReached);
+	const currentDomainUserCount = $derived(
+		newDomain && userDomainCounts && newDomain in userDomainCounts
+			? userDomainCounts[newDomain]
+			: 0
+	);
+
+	const isDomainLimitReached = $derived((domainAliasCount ?? 0) >= 50);
+	const isUserDomainQuotaReached = $derived(
+		userRole !== 'superadmin' &&
+			currentDomainQuota != null &&
+			currentDomainUserCount >= currentDomainQuota
+	);
+	const isUserGlobalQuotaReached = $derived(
+		userRole !== 'superadmin' &&
+			userQuota != null &&
+			(userAliasCount ?? 0) >= userQuota
+	);
+	const isCreateBlocked = $derived(
+		isDomainLimitReached || isUserDomainQuotaReached || isUserGlobalQuotaReached
+	);
 
 	let localPartInputEl = $state<HTMLInputElement | null>(null);
 
@@ -40,7 +66,6 @@
 	});
 
 	let newLocalPart = $state('');
-	let newDomain = $state(defaultDomain);
 	let creating = $state(false);
 	let error = $state('');
 	let errorId = 'quick-create-error';
@@ -304,9 +329,17 @@
 				<p class="mt-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg">
 					{t('quickCreate.limitReachedWarn')}
 				</p>
-			{:else if isUserQuotaReached}
+			{:else if isUserDomainQuotaReached}
+				<p class="mt-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg">
+					{t('quickCreate.domainQuotaWarn', { domain: newDomain, quota: currentDomainQuota ?? 0 })}
+				</p>
+			{:else if isUserGlobalQuotaReached}
 				<p class="mt-2 text-xs text-amber-400 bg-amber-400/10 px-3 py-1.5 rounded-lg">
 					{t('quickCreate.quotaExhaustedWarn', { quota: userQuota ?? 0 })}
+				</p>
+			{:else if userRole !== 'superadmin' && currentDomainQuota != null}
+				<p class="mt-2 text-xs text-app-muted">
+					{t('quickCreate.domainQuotaInfo', { domain: newDomain, used: currentDomainUserCount, total: currentDomainQuota })}
 				</p>
 			{/if}
 

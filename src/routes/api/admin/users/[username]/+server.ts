@@ -15,7 +15,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	}
 
 	const body = await request.json().catch(() => ({}));
-	const { maxAliases, password, reset2Fa } = body;
+	const { maxAliases, domainQuotas, password, reset2Fa } = body;
 
 	if (maxAliases !== undefined) {
 		if (maxAliases === null || maxAliases === '') {
@@ -26,6 +26,22 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 				return json({ error: 'Invalid alias quota value' }, { status: 400 });
 			}
 			user.maxAliases = n;
+		}
+	}
+
+	if (domainQuotas !== undefined) {
+		if (typeof domainQuotas === 'object' && domainQuotas !== null) {
+			const sanitized: Record<string, number> = {};
+			for (const [dom, q] of Object.entries(domainQuotas)) {
+				if (q === null || q === '') continue;
+				const num = Number(q);
+				if (!isNaN(num) && num >= 0) {
+					sanitized[dom.toLowerCase().trim()] = num;
+				}
+			}
+			user.domainQuotas = sanitized;
+		} else {
+			delete user.domainQuotas;
 		}
 	}
 
@@ -47,6 +63,7 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 		username: user.username,
 		role: user.role,
 		maxAliases: user.maxAliases,
+		domainQuotas: user.domainQuotas ?? {},
 		twoFactorEnabled: user.twoFactorEnabled
 	});
 };

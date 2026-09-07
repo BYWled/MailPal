@@ -330,3 +330,151 @@ export async function syncCloudflareDomainsAndDns(
 		throw err;
 	}
 }
+
+export interface CloudflareDestinationAddress {
+	id: string;
+	email: string;
+	verified: string | null; // ISO timestamp if verified, null if pending
+	created: string;
+	modified?: string;
+}
+
+/**
+ * Resolves the Cloudflare Account ID for the provided API token.
+ * Tries GET /accounts first, then falls back to extracting account.id from GET /zones.
+ */
+export async function getCloudflareAccountId(token: string): Promise<string | null> {
+	const cleanToken = token.trim();
+	if (!cleanToken) return null;
+
+	// 1. Try GET /accounts
+	try {
+		const res = await fetch(`${CF_API_BASE}/accounts?per_page=1`, {
+			headers: {
+				Authorization: `Bearer ${cleanToken}`,
+				'Content-Type': 'application/json'
+			}
+		});
+		if (res.ok) {
+			const body = (await res.json().catch(() => ({}))) as any;
+			if (body.success && Array.isArray(body.result) && body.result.length > 0 && body.result[0].id) {
+				return body.result[0].id;
+			}
+		}
+	} catch {
+		// fallback to zones
+	}
+
+	// 2. Fallback: try GET /zones
+	try {
+		const res = await fetch(`${CF_API_BASE}/zones?status=active&per_page=1`, {
+			headers: {
+				Authorization: `Bearer ${cleanToken}`,
+				'Content-Type': 'application/json'
+			}
+		});
+		if (res.ok) {
+			const body = (await res.json().catch(() => ({}))) as any;
+			if (body.success && Array.isArray(body.result) && body.result.length > 0 && body.result[0].account?.id) {
+				return body.result[0].account.id;
+			}
+		}
+	} catch {
+		// ignore
+	}
+
+	return null;
+}
+
+/**
+ * Lists all destination addresses configured in Cloudflare Email Routing for an account.
+ */
+export async function listCloudflareDestinationAddresses(
+	token: string,
+	accountId: string
+): Promise<CloudflareDestinationAddress[]> {
+	let page = 1;
+	const perPage = 50;
+	let all: CloudflareDestinationAddress[] = [];
+	let hasMore = true;
+
+	while (hasMore) {
+		const url = `${CF_API_BASE}/accounts/${encodeURIComponent(accountId)}/email/routing/addresses?per_page=${perPage}&page=${page}`;
+		const res = await fetch(url, {
+			headers: {
+				Authorization: `Bearer ${token.trim()}`,
+				'Content-Type': 'application/json'
+			}
+		});
+
+		if (!res.ok) {
+			const errBody = (await res.json().catch(() => ({}))) as any;
+			const errMsg = errBody.errors?.[0]?.message || `Cloudflare API error (${res.status})`;
+			throw new Error(errMsg);
+		}
+
+		const body = (await res.json()) as {
+			success: boolean;
+			result: CloudflareDestinationAddress[];
+			result_info?: { page: number; total_pages: number; count: number };
+		};
+
+		if (!body.success) {
+			throw new Error('Failed to retrieve destination addresses from Cloudflare API');
+		}
+
+		all = all.concat(body.result || []);
+
+		if (body.result_info && page < body.result_info.total_pages) {
+			page++;
+		} else {
+			hasMore = false;
+		}
+	}
+
+	return all;
+}
+
+/**
+ * Submits a destination address to Cloudflare Email Routing and triggers an automated verification email.
+ */
+export async function createCloudflareDestinationAddress(
+	token: string,
+	accountId: string,
+	email: string
+): Promise<CloudflareDestinationAddress> {
+	const cleanEmail = email.toLowerCase().trim();
+	const url = `${CF_API_BASE}/accounts/${encodeURIComponent(accountId)}/email/routing/addresses`;
+	const res = await fetch(url, {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${token.trim()}`,
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({ email: cleanEmail })
+	});
+
+	const body = (await res.json().catch(() => ({}))) as any;
+	if (!res.ok || !body.success) {
+		const errMsg = body.errors?.[0]?.message || `Failed to add destination address to Cloudflare (${res.status})`;
+		throw new Error(errMsg);
+	}
+
+	return body.result as CloudflareDestinationAddress;
+}
+
+/**
+ * Helper to resolve the active Cloudflare API Token.
+ */
+export function resolveCloudflareToken(
+	platform: App.Platform | undefined,
+	settings: import('./types.js').SystemSettings,
+	explicitToken?: string
+): string | null {
+	if (explicitToken?.trim()) return explicitToken.trim();
+	const envToken = platform?.env?.CF_API_TOKEN || platform?.env?.CLOUDFLARE_API_TOKEN;
+	if (envToken?.trim()) return envToken.trim();
+	if (settings.cfApiToken?.trim()) return settings.cfApiToken.trim();
+	return null;
+}
+
