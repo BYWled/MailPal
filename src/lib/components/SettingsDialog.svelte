@@ -248,6 +248,59 @@
 		showDestinationForm = true;
 	}
 
+	// Password change state
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmNewPassword = $state('');
+	let updatingPassword = $state(false);
+	let passwordError = $state('');
+	let passwordSuccess = $state('');
+
+	async function handleChangePassword(e: Event) {
+		e.preventDefault();
+		passwordError = '';
+		passwordSuccess = '';
+
+		if (!currentPassword) {
+			passwordError = t('settingsDialog.currentPassword') + ' required';
+			return;
+		}
+		if (newPassword.length < 8) {
+			passwordError = t('settingsDialog.passwordTooShort');
+			return;
+		}
+		if (newPassword !== confirmNewPassword) {
+			passwordError = t('settingsDialog.passwordMismatch');
+			return;
+		}
+
+		updatingPassword = true;
+		try {
+			const res = await fetch('/api/user/password', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ currentPassword, newPassword })
+			});
+			const data = (await res.json().catch(() => ({}))) as any;
+			if (res.ok && data.success) {
+				passwordSuccess = t('settingsDialog.passwordChangedSuccess');
+				currentPassword = '';
+				newPassword = '';
+				confirmNewPassword = '';
+			} else {
+				if (data.error === 'Current password is incorrect') {
+					passwordError = t('settingsDialog.currentPasswordIncorrect');
+				} else {
+					passwordError = data.error || t('settingsDialog.networkError');
+				}
+			}
+		} catch {
+			passwordError = t('settingsDialog.networkError');
+		} finally {
+			updatingPassword = false;
+		}
+	}
+
 	function handleClose() {
 		newEmail = '';
 		addError = '';
@@ -256,6 +309,11 @@
 		newTagColor = '#3b82f6';
 		showTagForm = false;
 		addTagError = '';
+		currentPassword = '';
+		newPassword = '';
+		confirmNewPassword = '';
+		passwordError = '';
+		passwordSuccess = '';
 		onClose();
 	}
 </script>
@@ -550,5 +608,83 @@
 				+ {t('settingsDialog.addTag')}
 			</button>
 		{/if}
+
+		<div class="border-t border-app-border"></div>
+
+		<!-- Account Security / Password Change -->
+		<div>
+			<h3 class="text-sm font-semibold text-app-text mb-0.5">{t('settingsDialog.accountTitle')}</h3>
+			<p class="text-xs text-app-muted leading-relaxed">
+				{t('settingsDialog.accountDesc')}
+			</p>
+		</div>
+
+		<form onsubmit={handleChangePassword} class="space-y-3 bg-app-hover/40 p-3.5 rounded-lg border border-app-border/70">
+			<div>
+				<label for="current-password" class="block text-xs font-medium text-app-muted mb-1">
+					{t('settingsDialog.currentPassword')}
+				</label>
+				<input
+					id="current-password"
+					type="password"
+					bind:value={currentPassword}
+					placeholder="••••••••"
+					required
+					autocomplete="current-password"
+					class="w-full px-3 py-1.5 rounded-lg border border-app-border bg-app-surface text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
+				/>
+			</div>
+
+			<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+				<div>
+					<label for="new-password" class="block text-xs font-medium text-app-muted mb-1">
+						{t('settingsDialog.newPassword')}
+					</label>
+					<input
+						id="new-password"
+						type="password"
+						bind:value={newPassword}
+						placeholder="••••••••"
+						required
+						minlength="8"
+						autocomplete="new-password"
+						class="w-full px-3 py-1.5 rounded-lg border border-app-border bg-app-surface text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
+					/>
+				</div>
+				<div>
+					<label for="confirm-new-password" class="block text-xs font-medium text-app-muted mb-1">
+						{t('settingsDialog.confirmNewPassword')}
+					</label>
+					<input
+						id="confirm-new-password"
+						type="password"
+						bind:value={confirmNewPassword}
+						placeholder="••••••••"
+						required
+						minlength="8"
+						autocomplete="new-password"
+						class="w-full px-3 py-1.5 rounded-lg border border-app-border bg-app-surface text-sm text-app-text placeholder:text-app-muted focus:outline-none focus:border-app-accent/60 transition-colors"
+					/>
+				</div>
+			</div>
+
+			{#if passwordError}
+				<p role="alert" class="text-xs text-red-400">{passwordError}</p>
+			{/if}
+			{#if passwordSuccess}
+				<p role="status" class="text-xs text-emerald-400">{passwordSuccess}</p>
+			{/if}
+
+			<div class="flex justify-end pt-1">
+				<button
+					type="submit"
+					disabled={updatingPassword || !currentPassword || !newPassword || !confirmNewPassword}
+					aria-busy={updatingPassword}
+					class="px-3.5 py-1.5 text-xs font-semibold bg-app-accent text-app-bg rounded-lg hover:brightness-110 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+				>
+					{updatingPassword ? t('settingsDialog.changingPassword') : t('settingsDialog.changePasswordBtn')}
+				</button>
+			</div>
+		</form>
 	</div>
 </Dialog>

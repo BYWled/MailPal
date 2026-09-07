@@ -254,7 +254,18 @@ export default {
 		probeFailed: '探测失败：{error}',
 		verifiedDesc: '该目标邮箱已通过 Cloudflare 所有权验证，可以正常用于所有别名邮件的接收与转发。',
 		pendingDesc: '该地址已在 Cloudflare 中登记，但尚未完成点击验证。请在该目标邮箱中查收并点击确认链接。',
-		notInCfDesc: '该地址尚未添加到 Cloudflare 目标地址库中，邮件将无法成功转发。点击下方按钮即可一键提交并自动发送验证邮件。'
+		notInCfDesc: '该地址尚未添加到 Cloudflare 目标地址库中，邮件将无法成功转发。点击下方按钮即可一键提交并自动发送验证邮件。',
+		accountTitle: '账号安全与修改密码',
+		accountDesc: '修改您当前登录账号的密码。新密码长度至少需要 8 个字符。',
+		currentPassword: '当前密码',
+		newPassword: '新密码（至少 8 位）',
+		confirmNewPassword: '确认新密码',
+		passwordMismatch: '两次输入的新密码不一致',
+		passwordTooShort: '新密码长度至少需要 8 个字符',
+		changePasswordBtn: '修改密码',
+		changingPassword: '正在修改…',
+		passwordChangedSuccess: '密码修改成功！',
+		currentPasswordIncorrect: '当前密码不正确'
 	},
 	admin: {
 		title: 'MailPal 管理控制台',

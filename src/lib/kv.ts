@@ -44,13 +44,19 @@ export async function listDomains(kv: KVNamespace): Promise<DomainConfig[]> {
 
 export async function listDomainsForUser(
 	kv: KVNamespace,
-	user?: { username: string; role: 'superadmin' | 'user' }
+	_user?: { username: string; role: 'superadmin' | 'user' }
 ): Promise<DomainConfig[]> {
-	const all = await listDomains(kv);
-	if (!user || user.role === 'superadmin') {
-		return all;
-	}
-	return all.filter((d) => d.ownerUsername === user.username);
+	// All users should see the hosted domains so they can view aliases and create aliases
+	return await listDomains(kv);
+}
+
+export function canManageDomain(
+	user: { username: string; role: 'superadmin' | 'user' } | undefined,
+	domain: DomainConfig
+): boolean {
+	if (!user) return false;
+	if (user.role === 'superadmin') return true;
+	return domain.ownerUsername?.toLowerCase().trim() === user.username.toLowerCase().trim();
 }
 
 // ─── Alias helpers ────────────────────────────────────────────────────────────
@@ -93,6 +99,11 @@ export async function listAliases(kv: KVNamespace, domain: string): Promise<Alia
 
 // ─── Destination address helpers ──────────────────────────────────────────────
 
+export async function getDestination(kv: KVNamespace, email: string): Promise<DestinationAddress | null> {
+	const val = await kv.get(`destination:${email.toLowerCase().trim()}`);
+	return val ? (JSON.parse(val) as DestinationAddress) : null;
+}
+
 export async function listDestinations(kv: KVNamespace): Promise<DestinationAddress[]> {
 	const list = await kv.list({ prefix: 'destination:' });
 	const configs = await Promise.all(
@@ -104,12 +115,24 @@ export async function listDestinations(kv: KVNamespace): Promise<DestinationAddr
 	return configs.filter((c): c is DestinationAddress => c !== null);
 }
 
+export async function listDestinationsForUser(
+	kv: KVNamespace,
+	user?: { username: string; role: 'superadmin' | 'user' }
+): Promise<DestinationAddress[]> {
+	const all = await listDestinations(kv);
+	if (!user || user.role === 'superadmin') {
+		return all;
+	}
+	const username = user.username.toLowerCase().trim();
+	return all.filter((d) => d.createdBy?.toLowerCase().trim() === username);
+}
+
 export async function putDestination(kv: KVNamespace, dest: DestinationAddress): Promise<void> {
-	await kv.put(`destination:${dest.email}`, JSON.stringify(dest));
+	await kv.put(`destination:${dest.email.toLowerCase().trim()}`, JSON.stringify(dest));
 }
 
 export async function deleteDestination(kv: KVNamespace, email: string): Promise<void> {
-	await kv.delete(`destination:${email}`);
+	await kv.delete(`destination:${email.toLowerCase().trim()}`);
 }
 
 // ─── Activity log helpers ─────────────────────────────────────────────────────

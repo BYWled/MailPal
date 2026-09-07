@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getSystemSettings, listDestinations } from '$lib/kv.js';
+import { getSystemSettings, listDestinationsForUser, getDestination } from '$lib/kv.js';
 import {
 	getCloudflareAccountId,
 	listCloudflareDestinationAddresses,
@@ -35,7 +35,7 @@ export const GET: RequestHandler = async ({ locals, platform }) => {
 		}
 
 		const [destinations, cfAddresses] = await Promise.all([
-			listDestinations(locals.kv),
+			listDestinationsForUser(locals.kv, locals.user),
 			listCloudflareDestinationAddresses(token, accountId)
 		]);
 
@@ -94,6 +94,13 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 	const email = body.email?.toLowerCase().trim();
 	if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
 		return json({ error: 'A valid email address is required' }, { status: 400 });
+	}
+
+	if (locals.user.role !== 'superadmin') {
+		const existing = await getDestination(locals.kv, email);
+		if (existing && existing.createdBy && existing.createdBy !== locals.user.username) {
+			return json({ error: 'Forbidden' }, { status: 403 });
+		}
 	}
 
 	const settings = await getSystemSettings(locals.kv);

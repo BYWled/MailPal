@@ -254,7 +254,18 @@ export default {
 		probeFailed: 'Probe failed: {error}',
 		verifiedDesc: 'This address is fully verified in Cloudflare and ready for email forwarding.',
 		pendingDesc: 'Registered in Cloudflare, awaiting owner verification. Please click the confirmation link sent to this inbox.',
-		notInCfDesc: 'Not yet registered in Cloudflare Email Routing. Forwarding will fail until added and verified. Click below to add it automatically.'
+		notInCfDesc: 'Not yet registered in Cloudflare Email Routing. Forwarding will fail until added and verified. Click below to add it automatically.',
+		accountTitle: 'Account Security & Password',
+		accountDesc: 'Change the password for your current account. Must be at least 8 characters long.',
+		currentPassword: 'Current Password',
+		newPassword: 'New Password (min. 8 characters)',
+		confirmNewPassword: 'Confirm New Password',
+		passwordMismatch: 'New passwords do not match',
+		passwordTooShort: 'New password must be at least 8 characters long',
+		changePasswordBtn: 'Update Password',
+		changingPassword: 'Updating…',
+		passwordChangedSuccess: 'Password updated successfully!',
+		currentPasswordIncorrect: 'Current password is incorrect'
 	},
 	admin: {
 		title: 'MailPal Admin Console',

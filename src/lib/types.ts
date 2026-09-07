@@ -11,6 +11,7 @@ export interface DomainConfig {
 export interface DestinationAddress {
 	email: string;
 	createdAt: number;
+	createdBy?: string; // username of user who added this destination
 	verified?: boolean; // true if verified in Cloudflare Email Routing
 	verificationStatus?: 'verified' | 'pending' | 'not_in_cf' | 'no_token';
 }
@@ -51,6 +52,7 @@ export interface User {
 	passwordHash: string; // PBKDF2 hash: pbkdf2$iterations$salt$hash
 	role: 'superadmin' | 'user';
 	createdAt: number;
+	updatedAt?: number;
 	maxAliases?: number; // fallback/default per-user quota across domains
 	domainQuotas?: Record<string, number>; // per-domain quota map: { [domain]: maxAliases }
 	twoFactorSecret?: string; // base32 TOTP secret

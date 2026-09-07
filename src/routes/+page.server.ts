@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import {
 	listDomainsForUser,
 	listAliases,
-	listDestinations,
+	listDestinationsForUser,
 	listTags,
 	getUser,
 	getSystemSettings,
@@ -10,12 +10,12 @@ import {
 	getUserDomainQuota,
 	countUserAliasesOnDomain
 } from '$lib/kv.js';
-import { maskLocalPart } from '$lib/mask.js';
+import { maskLocalPart, maskEmailAddress } from '$lib/mask.js';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const [domains, destinations, tags, onboardedFlag, settings] = await Promise.all([
 		listDomainsForUser(locals.kv, locals.user),
-		listDestinations(locals.kv),
+		listDestinationsForUser(locals.kv, locals.user),
 		listTags(locals.kv),
 		locals.kv.get('settings:onboarded'),
 		getSystemSettings(locals.kv)
@@ -70,8 +70,19 @@ export const load: PageServerLoad = async ({ locals }) => {
 		);
 	}
 
+	const sanitizedDomains = domains.map((d) => {
+		const isOwner = d.ownerUsername?.toLowerCase().trim() === currentUsername;
+		if (!isOwner && !isSuperadmin) {
+			return {
+				...d,
+				targetEmail: d.targetEmail ? maskEmailAddress(d.targetEmail) : ''
+			};
+		}
+		return d;
+	});
+
 	return {
-		domains,
+		domains: sanitizedDomains,
 		allAliases,
 		destinations,
 		tags,
