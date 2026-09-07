@@ -1,7 +1,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "mailpal",
-	"compatibility_date": "2025-01-01",
+	"compatibility_date": "2026-09-07",
 	"compatibility_flags": [
 		"nodejs_compat"
 	],
@@ -10,10 +10,16 @@
 		"binding": "ASSETS",
 		"directory": ".svelte-kit/cloudflare"
 	},
+	"routes": [
+		{
+			"pattern": "email.wled.email",
+			"custom_domain": true
+		}
+	],
 	"kv_namespaces": [
 		{
 			"binding": "KV",
-			"id": "d2fb6454c4ba4240a7c4ca55d548ed2d"
+			"id": "3363a32f3a00406980d46ba7f3bf2827"
 		}
 	],
 	"observability": {
