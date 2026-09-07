@@ -100,6 +100,7 @@
 						<label for="totpCode" class="block text-sm font-medium text-app-text mb-1.5 text-center">
 							6-Digit 2FA Code
 						</label>
+						<!-- svelte-ignore a11y_autofocus -->
 						<input
 							id="totpCode"
 							name="totpCode"

@@ -78,6 +78,7 @@
 					<label for="code" class="block text-sm font-medium text-app-text mb-1.5 text-center">
 						Enter 6-Digit Authenticator Code
 					</label>
+					<!-- svelte-ignore a11y_autofocus -->
 					<input
 						id="code"
 						name="code"

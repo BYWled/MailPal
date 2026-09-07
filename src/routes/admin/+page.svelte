@@ -41,7 +41,7 @@
 	let dnsErrorMsg = $state('');
 
 	// Cloudflare API Auto-fetch state
-	let cfFetchDomain = $state(domains.length > 0 ? domains[0].domain : '');
+	let cfFetchDomain = $state(data.domains.length > 0 ? data.domains[0].domain : '');
 	let cfApiTokenInput = $state('');
 	let fetchingCfDns = $state(false);
 	let cfDnsResult = $state<{ zoneId: string; zoneName: string; totalRecords: number; extractedNames: string[] } | null>(null);
