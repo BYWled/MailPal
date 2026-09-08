@@ -9,6 +9,32 @@ import {
 	resolveCloudflareAccountId
 } from '$lib/cloudflare.js';
 
+interface CacheEntry<T> {
+	value: T;
+	expiresAt: number;
+}
+
+const cfAddressesCache = new Map<string, CacheEntry<any[]>>();
+
+function getCachedCfAddresses(key: string): any[] | undefined {
+	const entry = cfAddressesCache.get(key);
+	if (!entry) return undefined;
+	if (Date.now() > entry.expiresAt) {
+		cfAddressesCache.delete(key);
+		return undefined;
+	}
+	return entry.value;
+}
+
+function setCachedCfAddresses(key: string, value: any[], ttlMs = 30_000): void {
+	cfAddressesCache.set(key, { value, expiresAt: Date.now() + ttlMs });
+}
+
+function invalidateCfAddressesCache(key?: string): void {
+	if (key) cfAddressesCache.delete(key);
+	else cfAddressesCache.clear();
+}
+
 export const GET: RequestHandler = async ({ locals, platform }) => {
 	if (!locals.user) {
 		return json({ error: 'Unauthorized' }, { status: 401 });
@@ -41,10 +67,13 @@ export const GET: RequestHandler = async ({ locals, platform }) => {
 			});
 		}
 
-		const [destinations, cfAddresses] = await Promise.all([
-			listDestinationsForUser(locals.kv, locals.user),
-			listCloudflareDestinationAddresses(token, accountId)
-		]);
+		let cfAddresses = getCachedCfAddresses(accountId);
+		if (!cfAddresses) {
+			cfAddresses = await listCloudflareDestinationAddresses(token, accountId);
+			setCachedCfAddresses(accountId, cfAddresses, 30_000);
+		}
+
+		const destinations = await listDestinationsForUser(locals.kv, locals.user);
 
 		const cfMap = new Map<string, { id: string; verified: boolean; status: 'verified' | 'pending'; created: string }>();
 		for (const addr of cfAddresses) {
@@ -141,6 +170,7 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 
 		if (body.action === 'add_to_cf') {
 			const created = await createCloudflareDestinationAddress(token, accountId, email);
+			invalidateCfAddressesCache(accountId);
 			const isVerified = Boolean(created.verified);
 			return json({
 				success: true,
@@ -154,7 +184,11 @@ export const POST: RequestHandler = async ({ request, locals, platform }) => {
 		}
 
 		// Default: probe
-		const cfAddresses = await listCloudflareDestinationAddresses(token, accountId);
+		let cfAddresses = getCachedCfAddresses(accountId);
+		if (!cfAddresses) {
+			cfAddresses = await listCloudflareDestinationAddresses(token, accountId);
+			setCachedCfAddresses(accountId, cfAddresses, 30_000);
+		}
 		const match = cfAddresses.find((a) => a.email.toLowerCase() === email);
 
 		if (match) {

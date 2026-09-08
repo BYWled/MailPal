@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { DestinationAddress, Tag } from '$lib/types.js';
 	import Dialog from './Dialog.svelte';
 	import ColorPicker from './ColorPicker.svelte';
@@ -150,9 +151,18 @@
 		}
 	}
 
+	let lastProbedOpen = false;
+
 	$effect(() => {
 		if (open) {
-			fetchProbeStatuses();
+			if (!lastProbedOpen) {
+				lastProbedOpen = true;
+				untrack(() => {
+					fetchProbeStatuses();
+				});
+			}
+		} else {
+			lastProbedOpen = false;
 		}
 	});
 
